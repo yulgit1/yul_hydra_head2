@@ -42,3 +42,6 @@ gem 'jquery-rails'
 group :development, :test do
   gem "jettywrapper"
 end
+
+gem "active-fedora"
+gem "om"
