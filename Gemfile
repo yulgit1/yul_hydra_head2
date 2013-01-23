@@ -38,3 +38,7 @@ gem 'jquery-rails'
 
 # To use debugger
 # gem 'debugger'
+
+group :development, :test do
+  gem "jettywrapper"
+end
