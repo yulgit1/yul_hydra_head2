@@ -1,0 +1,97 @@
+cd /home/yulrail/hydra_apps
+rails new yul_hydra_head2
+cd yul_hydra_head2
+git init
+git add -A
+git commit -m "Initial commit"
+
+cp Gemfile Gemfile.orig
+emacs Gemfile
+  ..
+  group :assets do
+    gem "execjs"
+    gem "therubyracer"
+  ..
+bundle install
+git add -A
+git commit -m ""Added gems for javascript: execjs and therubyracer"
+
+git clone -b 4.x git://github.com/projecthydra/hydra-jetty.git ../jetty
+cp -R ../jetty jetty
+emacs .gitignore
+  ..
+  #ignore jetty
+  /jetty
+git add -A
+git commit -m "Added jetty to project and git-ignored it"
+
+cp /home/yulrail/hydra-tut-dir/hydra_tutorial_app/config/solr.yml config/solr.yml
+cp /home/yulrail/hydra-tut-dir/hydra_tutorial_app/config/fedora.yml config/fedora.yml
+emacs Gemfile
+  ..
+  group :development, :test do
+    gem "jettywrapper"
+  end
+  ..
+bundle install
+git add -A
+git commit -m "Solr and Fedora configuration"
+
+rake jetty:start
+
+rm public/index.html
+git add -A
+git commit -m "Removed the Rails public/index.html file"
+
+emacs Gemfile
+  ..
+  gem "active-fedora"
+  gem "om"
+bundle install
+git add -A
+git commit -m "Added gems:active-fedora and om"
+
+git remote add github git@github.com:yulgit1/yul_hydra_head2.git
+create repository on github (https://github.com/yulgit1/yul_hydra_head2)
+su yulrail (to use the already generated rsa key)
+git push -u github master --force
+
+git clone https://github.com/projecthydra/hydra-mods.git ../hydra-mods
+cd app
+mkdir hydra
+cd hydra
+mkdir datastream
+cd datastream
+cp /home/yulrail/hydra_apps/hydra-mods/app/models/hydra/datastream/* .
+cd ../../../..
+git add -A
+git commit -m "added mods models"
+
+<created app/models/generic_content.rb>
+git add -A
+git commit -m "Added generic_content.rb ActiveFedora::Base" 
+
+ref: http://rubydoc.info/github/projecthydra/active_fedora/master/ActiveFedora/Datastreams
+ref: https://github.com/projecthydra/active_fedora/wiki/Getting-Started:-Console-Tour
+rails c
+  obj = GenericContent.new
+  obj.abstract = "an abstract"
+  obj.save
+  pid = obj.pid
+  file = File.new('/home/yulrail/data/data1/photoMODS.xml')
+  obj.add_file_datastream(file,:controlGroup=>'X',:mimeType=>'text/xml',:dsid=>'descMetadata')
+  obj.save
+  file2 = File.new('/home/yulrail/data/data1/M5043_0008_080.jpg')
+  obj.add_file_datastream(file,:controlGroup=>'M',:mimeType=>'image/jpg',:dsid=>'IMAGE1')
+  obj.save
+  obj.delete
+  exit
+  
+<created erj_setup_notes.txt>
+git add -A
+git commit -m "Added this doc" 
+ 
+  
+
+
+

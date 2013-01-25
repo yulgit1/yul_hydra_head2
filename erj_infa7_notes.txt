@@ -1,0 +1,136 @@
+#ERJ 8/7/12 - following (loosely):
+#http://www.cowboycoded.com/2010/07/07/setting-up-rails-3-on-rackspace-cloud-servers/
+#infa7 - 198.101.234.199
+#server:infa7
+#root:** (no direct access, must su)
+#yulrail:**
+#mysql:root,**
+#mysql:yulraildb,**
+
+
+useradd yulrail  
+passwd *******  
+in /etc/sudoers  #open sudoers in your favorite text edit  
+  # add the following line below "root ALL=(ALL) ALL" :  
+  # app_user ALL=(ALL) ALL      
+
+#disable root login from ssh, so nobody is able to brute force a root login  
+in /etc/ssh/sshd_config  
+  #uncomment "PermitRootLogin yes" and change it to "PermitRootLogin no"  
+  #/etc/init.d/sshd restart  
+  #logout and login or su to your new user  
+#from now on use user "yulrail"   
+
+sudo rpm -Uvh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-7.noarch.rpm
+
+sudo yum -y install gcc gcc-c++ make zlib zlib-devel openssl openssl-devel git expect pcre pcre-devel readline-devel mysql mysql-devel libxml2 libxml2-devel libxslt libxslt-devel
+
+wget ftp://ftp.ruby-lang.org/pub/ruby/1.9/ruby-1.9.3-p0.tar.gz
+tar -xvf ruby-1.9.3-p0.tar.gz
+./configure
+make
+sudo make install
+
+wget http://production.cf.rubygems.org/rubygems/rubygems-1.8.24.tgz
+tar -xvf rubygems-1.8.24.tgz
+sudo /usr/local/bin/ruby setup.rb
+#work around:
+  #see https://github.com/sstephenson/ruby-build/issues/119
+  #http://collectiveidea.com/blog/archives/2011/10/31/install-ruby-193-with-libyaml-on-centos/
+  wget http://pyyaml.org/download/libyaml/yaml-0.1.4.tar.gz
+  tar xzvf yaml-0.1.4.tar.gz
+  ./configure --prefix=/usr/local
+  make
+  sudo make install
+  <redo ruby-1.9.3-p0>
+
+#NOT in coyboycoded (RVM):
+curl -L https://get.rvm.io | bash -s stable
+<log out to activate>
+
+sudo /usr/local/bin/gem install rails
+
+rails new myapp
+  #work around - couldn't install sqlite3
+  #based loosely on https://gist.github.com/1083087
+  #http://www.sqlite.org/download.html/
+  wget http://www.sqlite.org/sqlite-autoconf-3071300.tar.gz
+  tar xvzf sqlite-autoconf-3071300.tar.gz
+  ./configure
+  make
+  sudo make install
+  sudo /usr/local/bin/gem install sqlite3
+  
+sudo /usr/local/bin/gem install passenger
+sudo /usr/local/bin/passenger-install-nginx-module
+  #guided workarounds
+  sudo yum install curl-devel
+  #prefix - /opt/nginx 
+
+#make config changes to nginx.conf as per:
+#http://www.cowboycoded.com/2010/07/07/setting-up-rails-3-on-rackspace-cloud-servers/
+
+/etc/sysconfig/iptables:  
+  # Add the following line towards the bottom below the port 22 ACCEPT  
+  # INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT  
+  # save and close  
+  # restart iptables  
+    sudo /etc/init.d/iptables restart 
+
+start/stop nginx:	      	      
+  sudo /opt/nginx/sbin/nginx
+  sudo /opt/nginx/sbin/nginx -s stop
+
+mysql:
+  #http://www.if-not-true-then-false.com/2010/install-mysql-on-fedora-centos-red-hat-rhel/
+  sudo rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-6.rpm
+  sudo yum --enablerepo=remi,remi-test list mysql mysql-server
+  sudo yum --enablerepo=remi,remi-test install mysql mysql-server
+  sudo /etc/init.d/mysqld start
+  sudo chkconfig --levels 235 mysqld on
+  /usr/bin/mysql_secure_installation
+  sudo /etc/init.d/iptables restart
+  mysql>create user yulraildb indentified by ********
+  mysql>grant ALL on *.* TO 'yulraildb';
+
+emacs:
+	sudo yum info emacs
+	     sudo yum install emacs
+git:
+  git config --global user.name "Eric James"
+  git config --global user.email "eric.james@yale.edu"
+  git config --global core.editor emacs
+
+github key:
+  #https://help.github.com/articles/generating-ssh-keys#platform-linux
+  created account w/ user: yulgit1 and osman and mike
+  ssh-keygen -t rsa -C "eric.james@yale.edu"
+  sudo yum install xclip (note: this appears to require Xwindows)
+    configure and run X-Win32 on windows
+    	      export DISPLAY=130.132.80.210:0.0 on remote
+	      	     xclip -sel clip < ~/.ssh/id_rsa.pub
+		       paste the clip to account
+		       ssh -T git@github.com (test)
+		       
+adding myapp to git
+  #http://git-scm.com/book
+  cd /home/yulrail/rails_apps/myapp
+  git init
+  git add -A
+  git commit
+  git log
+  #push up to github
+  #http://gitref.org/remotes/
+	git remote add github git@github.com:yulgit1/myapp.git
+	    create repository on github (https://github.com/yulgit1/myapp)
+	    	   git push -u github master
+
+#everything above here on yulRails1 image
+#skipped capistrano and memcached setup (perhaps revisit later)	
+
+1/11/13
+
+instructions per:  https://github.com/projecthydra/hydra-head
+upgrade rails to 3.2.9: sudo /usr/local/bin/gem install 'rails' --version '~>3.2.9
+uncommented in Gemfile: gem 'therubyracer', :platforms => :ruby
+installed rubyracer: sudo /usr/local/bin/gem install therubyracer -v 
