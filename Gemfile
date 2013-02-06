@@ -7,6 +7,8 @@ gem 'rails', '3.2.11'
 
 gem 'sqlite3'
 
+#ERJ 2/4/13
+gem 'tiny_tds'
 
 # Gems used only for assets and not required
 # in production environments by default.
@@ -34,7 +36,7 @@ gem 'jquery-rails'
 # gem 'unicorn'
 
 # Deploy with Capistrano
-# gem 'capistrano'
+gem 'capistrano'
 
 # To use debugger
 # gem 'debugger'

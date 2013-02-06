@@ -1,0 +1,14 @@
+role :lib, "198.101.234.199"
+role :libs, "198.101.234.199","libserver3.yale.edu"
+
+desc "check /usr/lib on servers"
+task :search_libs, :roles => :libs do
+  run "ls -x1 /usr/lib"
+end
+
+desc "check /usr/lib on this server"
+task :search_lib, :roles => :lib do
+  run "ls -x1 /usr/lib"
+end
+
+

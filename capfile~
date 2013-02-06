@@ -1,0 +1,4 @@
+role :libs, "198.101.234.199"
+task :search_libs do
+  run "ls -x1 /usr/lib"
+end
