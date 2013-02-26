@@ -3,9 +3,6 @@
 #https://github.com/projecthydra/active_fedora/wiki/Getting-Started:-Console-Tour
 #1)create oid/cid/znum/parent datastream 2) create models and test
 #rack security update
-#errorhydra table (id, oid,error, timestamp)
-#baghydra_errorhydra table (bhid,ehid)
-#baghydra_paths - fields: temp storage,permanent storage, URL, MD5
 namespace :yulhy do
   desc "ingest from ladybird"
   task :ingest do
@@ -38,7 +35,7 @@ namespace :yulhy do
 	#UNCOMM update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=GETDATE() where hpid=#{i["hpid"]}/)
 	if i["contentModel"] == "compound"
 	  process_compound(i)
-	else if i["contentModel"] =="simple"
+	elsif i["contentModel"] =="simple"
       process_simple(i)
     else 
       processerror(i,"content model: #{i["contentModel"]} not instantiated")	
@@ -55,7 +52,7 @@ namespace :yulhy do
     obj = CompoundParent.new  ##TODO create CompoundParent model 
 	obj.label = ("oid:" << i["oid"]  << " cid:" << i["cid"])
     files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5 from dbo.hydra_publish_path where hpid=#{i["hpid"]}/)
-    files.each { |file|
+    files.each do |file|
 	  digest = Digest::MD5.hexdigest(File.read(pathUNC))
 	  if digest != md5
 	    processerror(i,"failed checksum for #{pathUNC}")
@@ -63,12 +60,12 @@ namespace :yulhy do
 	  end	
 	  if file["type"] == "mods"
         #TODO obj.createdatastream
-      else if file["type"] == "access"
+      elsif file["type"] == "access"
         #TODO obj.createdatastream
-      else if file["type"] =="rights"
+      elsif file["type"] =="rights"
         #TODO createdatatream
       end
-	}
+	end
 	obj.save
 	#UNCOMM update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{i["hpid"]}/)
     process_children(i,obj.pid)
@@ -79,7 +76,7 @@ namespace :yulhy do
     obj = Simple.new  ##TODO create Simple model 
 	obj.label = ("oid:" << i["oid"] << " cid:" << i["cid"])
     files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5 from dbo.hydra_publish_path where hpid=#{i["hpid"]}/)
-    files.each { |file|
+    files.each do |file|
 	  digest = Digest::MD5.hexdigest(File.read(pathUNC))
 	  if digest != md5
 	    processerror(i,"failed checksum for #{pathUNC}")
@@ -87,18 +84,18 @@ namespace :yulhy do
 	  end
       if file["type"] == "mods"
         #TODO obj.createdatastream
-      else if file["type"] == "access"
+      elsif file["type"] == "access"
         #TODO obj.createdatastream
-      else if file["type"] =="rights"
+      elsif file["type"] =="rights"
         #TODO createdatatream
-	  else if file["type"] == "tif"
+	  elsif file["type"] == "tif"
         #TODO obj.createdatastream
-      else if file["type"] =="jp2"
+      elsif file["type"] =="jp2"
         #TODO createdatatream
-      else if file["type"] =="jpeg"
+      elsif file["type"] =="jpeg"
         #TODO createdatatream	
       end
-	}
+	end
 	obj.save
 	#UNCOMM update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{i["hpid"]}/)
   end
@@ -116,7 +113,7 @@ namespace :yulhy do
     obj = CompoundChild.new  ##TODO create Compound child model 
 	obj.label = ("oid:" << j["oid"] << " cid:" << j["cid"])
     files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5 from dbo.hydra_publish where hpid=#{j["hpid"]}/)
-    files.each { |file|
+    files.each do |file|
 	  digest = Digest::MD5.hexdigest(File.read(pathUNC))
 	  if digest != md5
 	    processerror(i,"failed checksum for #{pathUNC}")
@@ -124,18 +121,18 @@ namespace :yulhy do
 	  end
       if file["type"] == "mods"
         #TODO obj.createdatastream
-      else if file["type"] == "access"
+      elsif file["type"] == "access"
         #TODO obj.createdatastream
-      else if file["type"] =="rights"
+      elsif file["type"] =="rights"
         #TODO createdatatream
-	  else if file["type"] == "tif"
+	  elsif file["type"] == "tif"
         #TODO obj.createdatastream
-      else if file["type"] =="jp2"
+      elsif file["type"] =="jp2"
         #TODO createdatatream
-      else if file["type"] =="jpeg"
+      elsif file["type"] =="jpeg"
         #TODO createdatatream	
       end
-	}
+	end
 	obj.add_relationship(:isMemberOf,i)
 	#UNCOMM zindex = @@client.execute("Q/select top 1 _zindex from dbo.c#{j["cid"]} where oid=#{j["oid"]}/)
     #UNCOMM parent = ppid
@@ -143,8 +140,4 @@ namespace :yulhy do
 	obj.save
 	#UNCOMM update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{j["hpid"]}/)	
   end  
-end  
-
-
-
-  
+end
