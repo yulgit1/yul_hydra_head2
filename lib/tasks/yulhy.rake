@@ -32,7 +32,7 @@ namespace :yulhy do
   
   def processparentoid(i)
 	puts "processing oid: #{i}"
-	#UNCOMM update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=GETDATE() where hpid=#{i["hpid"]}/)
+	update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=GETDATE() where hpid=#{i["hpid"]}/)
 	if i["contentModel"] == "compound"
 	  process_compound(i)
 	elsif i["contentModel"] =="simple"
@@ -40,12 +40,12 @@ namespace :yulhy do
     else 
       processerror(i,"content model: #{i["contentModel"]} not instantiated")	
 	end
-	#UNCOMM update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraEnd=GETDATE() where hpid=#{i["hpid"]}/)
+	update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraEnd=GETDATE() where hpid=#{i["hpid"]}/)
   end
 
   def processerror(i,errormsg)
     puts "error for oid: #{i["oid"]} errormsg: #{errormsg}"
-    #UNCOMM ehid = @@client.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},#{errormsg}) select @@identity/)
+    ehid = @@client.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},#{errormsg}) select @@identity/)
   end
 
   def process_compound(i)          
@@ -56,7 +56,7 @@ namespace :yulhy do
 	  digest = Digest::MD5.hexdigest(File.read(pathUNC))
 	  if digest != md5
 	    processerror(i,"failed checksum for #{pathUNC}")
-		#TODO rollback functionality
+		return
 	  end	
 	  if file["type"] == "mods"
         #TODO obj.createdatastream
@@ -67,12 +67,11 @@ namespace :yulhy do
       end
 	end
 	obj.save
-	#UNCOMM update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{i["hpid"]}/)
+	update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{i["hpid"]}/)
     process_children(i,obj.pid)
   end
   
   def process_simple(i)
-    #UNCOMM update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=GETDATE() where hpid=#{i["hpid"]}/)
     obj = Simple.new  ##TODO create Simple model 
 	obj.label = ("oid:" << i["oid"] << " cid:" << i["cid"])
     files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5 from dbo.hydra_publish_path where hpid=#{i["hpid"]}/)
@@ -80,7 +79,7 @@ namespace :yulhy do
 	  digest = Digest::MD5.hexdigest(File.read(pathUNC))
 	  if digest != md5
 	    processerror(i,"failed checksum for #{pathUNC}")
-		#TODO rollback functionality
+		return
 	  end
       if file["type"] == "mods"
         #TODO obj.createdatastream
@@ -97,15 +96,15 @@ namespace :yulhy do
       end
 	end
 	obj.save
-	#UNCOMM update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{i["hpid"]}/)
+	update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{i["hpid"]}/)
   end
   
   def process_children(i,ppid)
     result = @@client.execute("select bhid,oid,cid from dbo.bagHydra where dateHydraStart is null and _oid=#{i["oid"]} order by date")
     result.each { |j| 
-		#UNCOMM update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=GETDATE() where hpid=#{j["hpid"]}/)
+		update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=GETDATE() where hpid=#{j["hpid"]}/)
         process_child(i,j,ppid) 
-		#UNCOMM update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraEnd=GETDATE() where hpid=#{j["hpid"]}/)
+		update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraEnd=GETDATE() where hpid=#{j["hpid"]}/)
     }  
   end
 
@@ -117,7 +116,7 @@ namespace :yulhy do
 	  digest = Digest::MD5.hexdigest(File.read(pathUNC))
 	  if digest != md5
 	    processerror(i,"failed checksum for #{pathUNC}")
-		#TODO rollback functionality
+		return
 	  end
       if file["type"] == "mods"
         #TODO obj.createdatastream
@@ -134,10 +133,10 @@ namespace :yulhy do
       end
 	end
 	obj.add_relationship(:isMemberOf,i)
-	#UNCOMM zindex = @@client.execute("Q/select top 1 _zindex from dbo.c#{j["cid"]} where oid=#{j["oid"]}/)
-    #UNCOMM parent = ppid
+	zindex = @@client.execute(%Q/select top 1 _zindex from dbo.c#{j["cid"]} where oid=#{j["oid"]}/)
+    parent = ppid
 	#DODO - create admin_metadata w/znumber and parent
 	obj.save
-	#UNCOMM update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{j["hpid"]}/)	
+	update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{j["hpid"]}/)	
   end  
 end

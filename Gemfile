@@ -47,3 +47,4 @@ end
 
 gem "active-fedora"
 gem "om"
+gem "solrizer-fedora"
