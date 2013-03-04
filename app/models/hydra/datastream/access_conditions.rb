@@ -5,6 +5,16 @@ require 'active_fedora'
 module Hydra
   module Datastream
     class AccessConditions < ActiveFedora::NokogiriDatastream
+	
+	  set_terminology do |t|
+	    t.root(:path=>"schema")
+		t.object(:path=>"object") {
+		  t.digitalFormats(:path=>"digitalFormats",:attributes=>{:type=>"tif"}) {
+		    t.rule(:path=>"rule") {
+		    }
+		  }    
+		}		    
+	  end
     end
   end
 end
