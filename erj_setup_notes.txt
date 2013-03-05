@@ -91,7 +91,21 @@ rails c
 git add -A
 git commit -m "Added this doc" 
  
-  
+quick install notes:
+git clone https://github.com/yulgit1/yul_hydra_head2.git
+cd yul_hydra_head2
+git clone git://github.com/projecthydra/hydra-jetty.git ../jetty
+cp -R ../jetty jetty
+bundle install
+rake jetty:start
+
+adding remote yullib:  
+git remote add yullib git@github.com:yalelibrary/yul_hydra_head2.git
+git remote -v
+
+pushing to remotes:
+git push github master
+git push yullib master  
 
 
 
