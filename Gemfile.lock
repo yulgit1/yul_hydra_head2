@@ -203,6 +203,7 @@ DEPENDENCIES
   om
   rails (= 3.2.11)
   sass-rails (~> 3.2.3)
+  solrizer
   solrizer-fedora
   sqlite3
   therubyracer (= 0.11.3)
