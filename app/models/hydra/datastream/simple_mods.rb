@@ -23,7 +23,7 @@ module Hydra
           t.main_title(:path=>"title",:attributes=>{:type=>:none})
 		  t.alt_title(:path=>"title",:attributes=>{:type=>"alternative"})
         }
-        t.isbn(:path=>"identififer",:attributes=>{:type=>"isbn"}) 		
+        t.isbn(:path=>"identifier",:attributes=>{:type=>"isbn"}) 		
 	  end
 	  
 	  def extract_classifications
@@ -61,7 +61,7 @@ module Hydra
 	  def extract_isbns
         isbns = {}
         self.find_by_terms(:isbn).each do |isbn| 
-          ::Solrizer::Extractor.insert_solr_field_value(isbns, "classification_s", isbn.text) 
+          ::Solrizer::Extractor.insert_solr_field_value(isbns, "isbn_s", isbn.text) 
         end
         return isbns
       end
