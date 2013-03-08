@@ -11,5 +11,20 @@ end
 file = File.new(modsfile)
 obj.add_file_datastream(file,:controlGroup=>'M',:mimeType=>'text/xml',:dsid=>'descMetadata')
 File.delete(modsfile)
+
+file = File.new('/home/ermadmix/seedfile.txt')
+obj.add_file_datastream(file,:controlGroup=>'M',:dsid=>'tif')
+obj.add_file_datastream(file,:controlGroup=>'M',:dsid=>'jpg')
+obj.add_file_datastream(file,:controlGroup=>'M',:dsid=>'jp2')
+
+obj.save
+
+ds = obj.create_datastream('ActiveFedora::Datastream','tif',:mimeType=>'image/tiff',:controlGroup=>'M',:dsLabel=>'TIFF oid #',:dsLocation=>'http://lbfiles.library.yale.edu/10590509.tif')
+obj.add_datastream(ds)
+ds = obj.create_datastream('ActiveFedora::Datastream','jpg',:mimeType=>'image/jpg',:controlGroup=>'M',:dsLabel=>'JPG oid #',:dsLocation=>'http://lbfiles.library.yale.edu/10590509.jpg')
+obj.add_datastream(ds)
+ds = obj.create_datastream('ActiveFedora::Datastream','jp2',:mimeType=>'image/jp2',:controlGroup=>'M',:dsLabel=>'jp2 oid #',:dsLocation=>'http://lbfiles.library.yale.edu/10590509.jp2')
+obj.add_datastream(ds)
+
 obj.save
 puts obj.pid

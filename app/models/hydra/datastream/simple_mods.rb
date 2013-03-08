@@ -67,15 +67,15 @@ module Hydra
       end
 	  
 	  def to_solr(solr_doc=Hash.new)
-          super(solr_doc)
-		  solr_doc.merge!(extract_classifications)
-		  solr_doc.merge!(extract_names)
-          solr_doc.merge!(extract_titles)
-		  solr_doc.merge!(extract_alt_titles)
-		  solr_doc.merge!(extract_isbns)
-          solr_doc.merge!(:object_type_facet => "MODS described")
-          solr_doc
-        end
+        super(solr_doc)
+	  	solr_doc.merge!(extract_classifications)
+	    solr_doc.merge!(extract_names)
+        solr_doc.merge!(extract_titles)
+        solr_doc.merge!(extract_alt_titles)
+	    solr_doc.merge!(extract_isbns)
+        solr_doc.merge!(:object_type_facet => "MODS described")
+        solr_doc
+      end	
     end
   end
 end
