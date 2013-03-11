@@ -13,20 +13,27 @@ namespace :yulhy do
     if @@client.active? == false
       abort("TASK ABORTED: could not connect to db")
     end
+	@cnt=0
     processoids()
     @@client.close
   end
 
   def processoids()
-    result = @@client.execute("select top 1 hpid,oid,cid,contentModel from dbo.hydra_publish where dateHydraStart is null and _oid=0 order by date")
-    if result.affected_rows == 0
+	@cnt += 1
+	puts @cnt
+    result = @@client.execute("select top 1 hpid,oid,cid,contentModel from dbo.hydra_publish where dateHydraStart is null and dateReady is not null and _oid=0 order by date")
+    result.fields.to_s
+	if result.affected_rows == 0
       @@client.close
       abort("finished, no more baghydra rows to process")
     else 
-      result.each { |i| 
-        processparentoid(i) 
-      }
-      #UNCOMM processoids() #recursion
+      result.each do |i|	  
+        processparentoid(i)	
+      end
+	  if @cnt > 30 
+	    abort("prevent infinite loop")
+	  end	  
+      processoids()
     end
   end
   
@@ -34,18 +41,22 @@ namespace :yulhy do
 	puts "processing oid: #{i}"
 	update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=GETDATE() where hpid=#{i["hpid"]}/)
 	if i["contentModel"] == "compound"
-	  process_compound(i)
+	  #process_compound(i)
 	elsif i["contentModel"] =="simple"
-      process_simple(i)
+      #process_simple(i)
     else 
       processerror(i,"content model: #{i["contentModel"]} not instantiated")	
 	end
 	update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraEnd=GETDATE() where hpid=#{i["hpid"]}/)
+	update.do
   end
 
   def processerror(i,errormsg)
     puts "error for oid: #{i["oid"]} errormsg: #{errormsg}"
-    ehid = @@client.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},#{errormsg}) select @@identity/)
+	puts %Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{errormsg}") select @@identity/
+    ehid = @@client.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{errormsg}")/)
+	ehid.insert
+	puts "finished processing error"
   end
 
   def process_compound(i)          

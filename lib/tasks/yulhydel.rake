@@ -14,6 +14,8 @@ namespace :yulhy do
       abort("TASK ABORTED: could not connect to db")
     end
     update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=null,dateHydraEnd=null,hydraId=null/)
-    @@client.close
+    puts "affected_rows " + update.do.to_s
+	#update.cancel
+	@@client.close
   end  
 end
