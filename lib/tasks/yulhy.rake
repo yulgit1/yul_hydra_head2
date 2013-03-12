@@ -3,6 +3,8 @@
 #https://github.com/projecthydra/active_fedora/wiki/Getting-Started:-Console-Tour
 #1)create oid/cid/znum/parent datastream 2) create models and test
 #rack security update
+
+#todo 3/12/13 - compound to complex bug, create simple and child models, fill in Active fedora
 namespace :yulhy do
   desc "ingest from ladybird"
   task :ingest do
@@ -40,7 +42,7 @@ namespace :yulhy do
   def processparentoid(i)
 	puts "processing oid: #{i}"
 	update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=GETDATE() where hpid=#{i["hpid"]}/)
-	if i["contentModel"] == "compound"
+	if i["contentModel"] == "complex"
 	  #process_compound(i)
 	elsif i["contentModel"] =="simple"
       #process_simple(i)
