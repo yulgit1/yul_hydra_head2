@@ -18,6 +18,8 @@ namespace :yulhy do
     end
 	@mountroot = "/home/ermadmix/libshare/"
 	puts "batch mounted as " + @mountroot
+	@tempdir = "/home/ermadmix/"
+	puts "temp directory" + @tempdir
 	@cnt=0
     processoids()
     @@client.close
@@ -26,7 +28,7 @@ namespace :yulhy do
   def processoids()
 	@cnt += 1
 	puts @cnt
-    result = @@client.execute("select top 1 hpid,oid,cid,pid,contentModel from dbo.hydra_publish where dateHydraStart is null and dateReady is not null and _oid=0 order by date")
+    result = @@client.execute("select top 1 hpid,oid,cid,pid,contentModel,_oid,zindex from dbo.hydra_publish where dateHydraStart is null and dateReady is not null and _oid=0 order by date")
     result.fields.to_s
 	if result.affected_rows == 0
       @@client.close
@@ -65,21 +67,19 @@ namespace :yulhy do
 	update.do
   end
 
+  #ERJ error routine for exceptions 
   def processerror(i,errormsg)
     linenum = errormsg.backtrace[0].split(':')[1]
 	dberror = "[#{linenum}] #{errormsg}"
     puts "error for oid: #{i["oid"]} errormsg: #{dberror}"
-	#puts %Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{errormsg}") select @@identity/
-    ehid = @@client.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{dberror}")/)
+	ehid = @@client.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{dberror}")/)
 	ehid.insert
-	puts "finished processing error"
   end
+  #ERJ error routine for message driven errors (no exceptions) 
   def processmsg(i,errormsg)
     puts "error for oid: #{i["oid"]} errormsg: #{errormsg}"
-	#puts %Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{errormsg}") select @@identity/
-    ehid = @@client.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{errormsg}")/)
+	ehid = @@client.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{errormsg}")/)
 	ehid.insert
-	puts "finished processing error"
   end
 
   def process_complex(i)          
@@ -106,8 +106,8 @@ namespace :yulhy do
   end
   
   def process_simple(i)
-    #obj = Simple.new  ##TODO create Simple model 
-	#obj.label = ("oid:" << i["oid"] << " cid:" << i["cid"])
+    obj = Simple.new  ##TODO create Simple model 
+	obj.label = ("oid: #{i["oid"]}")
     files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5 from dbo.hydra_publish_path where hpid=#{i["hpid"]}/)
     begin
 	files.each do |file|
@@ -115,13 +115,33 @@ namespace :yulhy do
 	  md5 = file["md5"]
       path = file["pathUNC"]	
       if file["type"] == "xml metadata"
-        #TODO obj.createdatastream
+	    puts %Q/url: file["pathHTTP"]"/
+        modsfile = tempdir + 'mods.xml'
+        open(modsfile, 'wb') do |f|
+          f << open(file["pathHTTP"]).read
+        end
+        ff = File.new(modsfile)
+        obj.add_file_datastream(ff,:controlGroup=>'M',:mimeType=>'text/xml',:dsid=>'descMetadata')
+        File.delete(modsfile)
       elsif file["type"] == "xml access"
-        #TODO obj.createdatastream
+        puts %Q/url: file["pathHTTP"]"/
+        accessfile = tempdir + 'access.xml'
+        open(accessfile, 'wb') do |f|
+          f << open(file["pathHTTP"]).read
+        end
+        ff = File.new(accessfile)
+        obj.add_file_datastream(ff,:controlGroup=>'M',:mimeType=>'text/xml',:dsid=>'descMetadata')
+        File.delete(accessfile)
       elsif file["type"] =="xml rights"
-        #TODO createdatatream
+        puts %Q/url: file["pathHTTP"]"/
+        rightsfile = tempdir + 'rights.xml'
+        open(rightsfile, 'wb') do |f|
+          f << open(file["pathHTTP"]).read
+        end
+        ff = File.new(rightsfile)
+        obj.add_file_datastream(ff,:controlGroup=>'M',:mimeType=>'text/xml',:dsid=>'descMetadata')
+        File.delete(rightsfile)
 	  elsif file["type"] == "tif"
-        #TODO obj.createdatastream
 		realpath = @mountroot + path[path.rindex('ladybird'),path.length].gsub(/\\/,'/')
 	    puts "path: #{realpath}"
 		if File.new(realpath).size == 0 
@@ -135,9 +155,10 @@ namespace :yulhy do
 	      files.cancel
 		  processmsg(i,%Q/failed checksum for #{file["type"]}/)
           return
-        end 	
+        end
+		tiffile = File.new(realpath)
+        obj.add_file_datastream(tiffile,:dsid=>'tif',:mimeType=>"image/tiff", :controlGroup=>'M',:checksumType=>'MD5')
       elsif file["type"] =="jp2"
-        #TODO createdatatream
 		realpath = @mountroot + path[path.rindex('ladybird'),path.length].gsub(/\\/,'/')
 	    puts "path: #{realpath}"
 		if File.new(realpath).size == 0 
@@ -151,9 +172,10 @@ namespace :yulhy do
 	      files.cancel
 		  processmsg(i,%Q/failed checksum for #{file["type"]}/)
           return
-        end 
+        end
+        jp2file = File.new(realpath)
+        obj.add_file_datastream(jp2file,:dsid=>'jp2',:mimeType=>"image/jp2", :controlGroup=>'M',:checksumType=>'MD5')
       elsif file["type"] =="jpg"
-        #TODO createdatatream
         realpath = @mountroot + path[path.rindex('ladybird'),path.length].gsub(/\\/,'/')
 	    puts "path: #{realpath}"
 		if File.new(realpath).size == 0 
@@ -167,15 +189,23 @@ namespace :yulhy do
 	      files.cancel
 		  processmsg(i,%Q/failed checksum for #{file["type"]}/)
           return
-        end 		
+        end
+        jpgfile = File.new(realpath)
+        obj.add_file_datastream(jpgfile,:dsid=>'jpg',:mimeType=>"image/jpg", :controlGroup=>'M',:checksumType=>'MD5')   		
       end
 	end
 	rescue Exception => msg
 	  files.cancel
 	  processerror(i,msg)
 	end
-	#obj.save
-	#update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{i["hpid"]}/)
+	obj.oid = i["oid"]
+	obj.cid = i["cid"]
+	obj.projid = i["pid"]
+	obj.zindex = i["zindex"]
+	obj.parentoid = i["_oid"]
+	obj.save
+	update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{i["hpid"]}/)
+	update.do
   end
   
   def process_children(i,ppid)
