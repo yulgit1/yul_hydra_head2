@@ -13,9 +13,12 @@ namespace :yulhy do
     if @@client.active? == false
       abort("TASK ABORTED: could not connect to db")
     end
+	puts %Q/update dbo.hydra_publish set dateHydraStart=null,dateHydraEnd=null,hydraId=null/
     update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=null,dateHydraEnd=null,hydraId=null/)
     puts "affected_rows " + update.do.to_s
-	#update.cancel
+    puts %Q/delete from dbo.hydra_publish_error/
+    update = @@client.execute(%Q/delete from dbo.hydra_publish_error/)
+    puts "affected_rows " + update.do.to_s
 	@@client.close
   end  
 end

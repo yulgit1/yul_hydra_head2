@@ -14,13 +14,13 @@ File.delete(modsfile)
 
 #file = File.new('/home/ermadmix/seedfile.txt')
 
-tiffile = File.new('/home/ermadmix/libshare/ladybird/project25/publish/BAG/10592593/data/6327032a.tif')
-jpgfile = File.new('/home/ermadmix/libshare/ladybird/project25/publish/DL/10592593/6327032a.jpg')
-jp2file = File.new('/home/ermadmix/libshare/ladybird/project25/publish/DL/10592593/6327032a.jp2')
+tiffile = File.new('/home/ermadmix/libshare/ladybird/project25/publish/BAG/10592589/data/4005429a.tif')
+jpgfile = File.new('/home/ermadmix/libshare/ladybird/project25/publish/DL/10592589/4005429a.jpg')
+jp2file = File.new('/home/ermadmix/libshare/ladybird/project25/publish/DL/10592589/4005429a.jp2')
 
-obj.add_file_datastream(tiffile,:dsid=>'tif',:label=>'tif oid',:mimeType=>"image/tiff", :controlGroup=>'M',:checksumType=>'MD5')
-obj.add_file_datastream(jpgfile,:dsid=>'jpg',:label=>'jpg oid',:mimeType=>"image/jpg", :controlGroup=>'M',:checksumType=>'MD5',:checksum=>'b607a3cdd700a3148b5cbeb83ef39710')
-obj.add_file_datastream(jp2file,:dsid=>'jp2',:label=>'jp2 oid',:mimeType=>"image/jp2", :controlGroup=>'M',:checksumType=>'MD5')
+obj.add_file_datastream(tiffile,:dsid=>'tif',:mimeType=>"image/tiff", :controlGroup=>'M',:checksumType=>'MD5')
+obj.add_file_datastream(jpgfile,:dsid=>'jpg',:mimeType=>"image/jpg", :controlGroup=>'M',:checksumType=>'MD5')
+obj.add_file_datastream(jp2file,:dsid=>'jp2',:mimeType=>"image/jp2", :controlGroup=>'M',:checksumType=>'MD5')
 #obj.add_file_datastream(jpgfile,:dsid=>'jpg',:label=>'jpg oid',:mimeType=>"image/jpg", :controlGroup=>'M',:checksumType=>'MD5',:checksum=>'b607a3cdd700a3148b5cbeb83ef39711')
 
 #obj.save
@@ -34,6 +34,3 @@ obj.add_file_datastream(jp2file,:dsid=>'jp2',:label=>'jp2 oid',:mimeType=>"image
 
 obj.save
 puts obj.pid
-
-POST /fedora/objects/changeme%3A80/datastreams/tif?controlGroup=M&dsState=A&versionable=true&mimeType=image%2Ftiff&dsLabel=tif+oid HTTP/1.1" 201
-POST /fedora/objects/changeme%3A80/datastreams/jp2?controlGroup=M&dsState=A&versionable=true&mimeType=image%2Fjp2&dsLabel=jp2+oid HTTP/1.1" 500 0 
