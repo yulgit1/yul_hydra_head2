@@ -6,6 +6,14 @@ class ComplexParent < ActiveFedora::Base
   has_metadata :name => 'descMetadata', :type => Hydra::Datastream::SimpleMods
   has_metadata :name => 'accessMetadata', :type => Hydra::Datastream::AccessConditions
   has_metadata :name => 'rightsMetadata', :type => Hydra::Datastream::Rights
+  has_metadata :name => 'propertyMetadata', :type => Hydra::Datastream::Properties
+  
+  delegate :oid, :to=>"propertyMetadata", :unique=>true
+  delegate :projid, :to=>"propertyMetadata", :unique=>true
+  delegate :cid, :to=>"propertyMetadata", :unique=>true
+  delegate :zindex, :to=>"propertyMetadata", :unique=>true
+  delegate :parentoid, :to=>"propertyMetadata", :unique=>true 
+  
   #ERJ, has datastream (from::ActiveFedora::DatastreamCollections)  not used, params not propagated to fedora 
   #has_datastream :name => 'tif', :type=>ActiveFedora::Datastream,:mimeType=>"image/tiff", :controlGroup=>'M',:checksumType=>'MD5'
   #has_datastream :name => 'jpg', :type=>ActiveFedora::Datastream,:mimeType=>"image/jpg", :controlGroup=>'M',:checksumType=>'MD5'

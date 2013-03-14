@@ -13,9 +13,14 @@ namespace :yulhy do
 	puts "requirement: root of share must be 'ladybird'"
     #client = TinyTds::Client.new(:username => 'pamojaReader',:password => 'plQ(*345',:host => 'blues.library.yale.edu',:database => 'pamoja')
     @@client = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
-    puts "connection to db OK? #{@@client.active?}"
+    puts "client1 connection to db OK? #{@@client.active?}"
     if @@client.active? == false
-      abort("TASK ABORTED: could not connect to db")
+      abort("TASK ABORTED: client1 could not connect to db")
+    end
+	@@client2 = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
+    puts "client2 connection to db OK? #{@@client.active?}"
+    if @@client2.active? == false
+      abort("TASK ABORTED: client2 could not connect to db")
     end
 	@mountroot = "/home/ermadmix/libshare/"
 	puts "batch mounted as " + @mountroot
@@ -55,9 +60,9 @@ namespace :yulhy do
 	update.do
 	begin  
 	  if i["contentModel"] == "complex"
-	    #process_complex(i)
+	    process_complex(i)
 	  elsif i["contentModel"] =="simple"
-        process_simple(i)	  
+        #process_simple(i)	  
       else	
         processerror(i,"content model: #{i["contentModel"]} not instantiated")	
 	  end
@@ -84,30 +89,81 @@ namespace :yulhy do
   end
 
   def process_complex(i)          
-    obj = ComplexParent.new  ##TODO create CompoundParent model 
-	obj.label = ("oid:" << i["oid"]  << " cid:" << i["cid"])
+    obj = ComplexParent.new 
+	obj.label = ("oid: #{i["oid"]}")
     files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5 from dbo.hydra_publish_path where hpid=#{i["hpid"]}/)
-    files.each do |file|
-	  digest = Digest::MD5.hexdigest(File.read(pathUNC))
-	  if digest != md5
-	    processerror(i,"failed checksum for #{pathUNC}")
-		return
-	  end	
-	  if file["type"] == "mods"
-        #TODO obj.createdatastream
-      elsif file["type"] == "access"
-        #TODO obj.createdatastream
-      elsif file["type"] =="rights"
-        #TODO createdatatream
+    metachk = 0
+	accchk = 0
+	rightschk = 0
+	begin
+	files.each do |file|
+      puts "file: #{file}"
+	  md5 = file["md5"]
+      path = file["pathUNC"]	
+      if file["type"] == "xml metadata"
+	    puts %Q/url: #{file["pathHTTP"]}/
+        modsfile = @tempdir + 'mods.xml'
+        open(modsfile, 'wb') do |f|
+          f << open(file["pathHTTP"]).read
+        end
+        ff = File.new(modsfile)
+        obj.add_file_datastream(ff,:controlGroup=>'M',:mimeType=>'text/xml',:dsid=>'descMetadata')
+        File.delete(modsfile)
+		metachk = 1
+      elsif file["type"] == "xml access"
+        puts %Q/url: #{file["pathHTTP"]}/
+        accessfile = @tempdir + 'access.xml'
+        open(accessfile, 'wb') do |f|
+          f << open(file["pathHTTP"]).read
+        end
+        ff = File.new(accessfile)
+        obj.add_file_datastream(ff,:controlGroup=>'M',:mimeType=>'text/xml',:dsid=>'accessMetadata')
+        File.delete(accessfile)
+		accchk = 1
+      elsif file["type"] =="xml rights"
+        puts %Q/url: #{file["pathHTTP"]}/
+        rightsfile = @tempdir + 'rights.xml'
+        open(rightsfile, 'wb') do |f|
+          f << open(file["pathHTTP"]).read
+        end
+        ff = File.new(rightsfile)
+        obj.add_file_datastream(ff,:controlGroup=>'M',:mimeType=>'text/xml',:dsid=>'rightsMetadata')
+        File.delete(rightsfile)
+		rightschk = 1
       end
 	end
+	rescue Exception => msg
+	  files.cancel
+	  processerror(i,msg)
+	  return
+	end
+    missingds = ""
+	missingds += "no descMetadata " if metachk == 0
+	missingds += "no accessMetadata " if accchk == 0
+	missingds += "no rightsMetadata " if rightschk == 0
+	if missingds.size > 0
+	  processmsg(i,missingds)
+	  return
+	end
+    obj.oid = i["oid"]
+	obj.cid = i["cid"]
+	obj.projid = i["pid"]
+	obj.zindex = i["zindex"]
+	obj.parentoid = i["_oid"]
 	obj.save
-	update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{i["hpid"]}/)
-    process_children(i,obj.pid)
+	puts "PID #{obj.pid} sucessfully created for #{i["oid"]}"
+	update = @@client.execute(%Q/update dbo.hydra_publish set hydraID='#{obj.pid}' where hpid=#{i["hpid"]}/)
+    update.do
+	process_children(i,obj.pid)
   end
   
-  def process_simple(i)
-    obj = Simple.new  ##TODO create Simple model 
+  def process_simple(i,cm,ppid)
+    obj = nil 
+	if cm == "simple"
+      obj = Simple.new
+	elsif cm == "child"
+	  obj = ComplexChild.new
+	end  
 	obj.label = ("oid: #{i["oid"]}")
     files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5 from dbo.hydra_publish_path where hpid=#{i["hpid"]}/)
     metachk = 0
@@ -228,23 +284,52 @@ namespace :yulhy do
 	obj.projid = i["pid"]
 	obj.zindex = i["zindex"]
 	obj.parentoid = i["_oid"]
-	obj.save
+	begin
+	  if cm == "child"
+	    pid_uri = "info:fedora/#{ppid}"
+	    obj.add_relationship(:is_member_of,pid_uri)
+	  end
+	  obj.save
+	rescue Exception => msg
+      processerror(i,msg)
+	  return
+    end	  
 	puts "PID #{obj.pid} sucessfully created for #{i["oid"]}"
 	update = @@client.execute(%Q/update dbo.hydra_publish set hydraID='#{obj.pid}' where hpid=#{i["hpid"]}/)
 	update.do
   end
   
   def process_children(i,ppid)
-    result = @@client.execute("select bhid,oid,cid from dbo.bagHydra where dateHydraStart is null and _oid=#{i["oid"]} order by date")
-    result.each { |j| 
-		update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=GETDATE() where hpid=#{j["hpid"]}/)
-        process_child(i,j,ppid) 
-		update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraEnd=GETDATE() where hpid=#{j["hpid"]}/)
+    puts "process_children for #{ppid}"
+	#ERJ note using client2 for children iteration
+    result = @@client2.execute("select hpid,oid,cid,pid,contentModel,_oid,zindex from dbo.hydra_publish where dateHydraStart is null and _oid=#{i["oid"]} order by date")
+    result.each { |j|
+      begin 	
+	    update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=GETDATE() where hpid=#{j["hpid"]}/)
+        update.do
+	    #process_child(i,j,ppid)
+		if j["oid"] == 10590509
+          process_simple(j,"child",ppid)
+		else
+	      puts %Q/bypass processing child #{j["hpid"]} #{j["oid"]}/ 
+        end			
+	    update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraEnd=GETDATE() where hpid=#{j["hpid"]}/)
+	    update.do
+	  rescue Exception => msg
+	    unless update.nil? 
+		  update.cancel
+		end
+	    unless result.nil?
+		  result.cancel
+		end
+	    processerror(i,msg)
+	    return#for testing
+	  end
     }  
   end
 
   def process_child(i,j,ppid)
-    obj = CompoundChild.new  ##TODO create Compound child model 
+    obj = CompoundChild.new 
 	obj.label = ("oid:" << j["oid"] << " cid:" << j["cid"])
     files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5 from dbo.hydra_publish where hpid=#{j["hpid"]}/)
     files.each do |file|
@@ -273,25 +358,5 @@ namespace :yulhy do
 	#DODO - create admin_metadata w/znumber and parent
 	obj.save
 	update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{j["hpid"]}/)	
-  end
-  def validatechecksum(i,file)
-    begin
-	md5 = file["md5"]
-    path = file["pathUNC"]
-    realpath = @mountroot + path[path.rindex('ladybird'),path.length].gsub(/\\/,'/')
-	puts "path: #{realpath}"
-	digest = Digest::MD5.hexdigest(File.read(realpath))
-	if digest != md5
-	  return 1
-	else
-	  return 0
-	end
-    rescue Exception => msg
-	  linenum = errormsg.backtrace[0].split(':')[1]
-	  dberror = "[#{linenum}] #{errormsg}"
-      puts "error for oid: #{i["oid"]} errormsg: #{dberror}"
-	  return 2
-    end	  
-  end
-    
+  end   
 end
