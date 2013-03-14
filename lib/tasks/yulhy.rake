@@ -55,14 +55,14 @@ namespace :yulhy do
   end
   
   def processparentoid(i)
-	puts "processing oid: #{i}"  
+	puts "processing top level oid: #{i}"  
 	update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=GETDATE() where hpid=#{i["hpid"]}/)
 	update.do
 	begin  
 	  if i["contentModel"] == "complex"
 	    process_complex(i)
 	  elsif i["contentModel"] =="simple"
-        #process_simple(i)	  
+        process_simple(i,"simple","")	  
       else	
         processerror(i,"content model: #{i["contentModel"]} not instantiated")	
 	  end
@@ -78,6 +78,7 @@ namespace :yulhy do
     linenum = errormsg.backtrace[0].split(':')[1]
 	dberror = "[#{linenum}] #{errormsg}"
     puts "error for oid: #{i["oid"]} errormsg: #{dberror}"
+	#puts "STACK:" + errormsg.backtrace.to_s
 	ehid = @@client.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{dberror}")/)
 	ehid.insert
   end
@@ -88,7 +89,8 @@ namespace :yulhy do
 	ehid.insert
   end
 
-  def process_complex(i)          
+  def process_complex(i) 
+    puts "complex oid: #{i}"  
     obj = ComplexParent.new 
 	obj.label = ("oid: #{i["oid"]}")
     files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5 from dbo.hydra_publish_path where hpid=#{i["hpid"]}/)
@@ -97,11 +99,11 @@ namespace :yulhy do
 	rightschk = 0
 	begin
 	files.each do |file|
-      puts "file: #{file}"
+      puts %Q/file: #{file["type"]}/
 	  md5 = file["md5"]
       path = file["pathUNC"]	
       if file["type"] == "xml metadata"
-	    puts %Q/url: #{file["pathHTTP"]}/
+	    #puts %Q/url: #{file["pathHTTP"]}/
         modsfile = @tempdir + 'mods.xml'
         open(modsfile, 'wb') do |f|
           f << open(file["pathHTTP"]).read
@@ -111,7 +113,7 @@ namespace :yulhy do
         File.delete(modsfile)
 		metachk = 1
       elsif file["type"] == "xml access"
-        puts %Q/url: #{file["pathHTTP"]}/
+        #puts %Q/url: #{file["pathHTTP"]}/
         accessfile = @tempdir + 'access.xml'
         open(accessfile, 'wb') do |f|
           f << open(file["pathHTTP"]).read
@@ -121,7 +123,7 @@ namespace :yulhy do
         File.delete(accessfile)
 		accchk = 1
       elsif file["type"] =="xml rights"
-        puts %Q/url: #{file["pathHTTP"]}/
+        #puts %Q/url: #{file["pathHTTP"]}/
         rightsfile = @tempdir + 'rights.xml'
         open(rightsfile, 'wb') do |f|
           f << open(file["pathHTTP"]).read
@@ -150,7 +152,19 @@ namespace :yulhy do
 	obj.projid = i["pid"]
 	obj.zindex = i["zindex"]
 	obj.parentoid = i["_oid"]
-	obj.save
+	begin
+	  result = @@client.execute(%Q/select max(zindex) as total from dbo.hydra_publish where _oid = #{i["oid"]}/)
+	  result.each do |i|
+	    obj.ztotal =  i["total"]
+	  end
+	  obj.save
+	rescue Exception => msg
+	  unless result.nil? 
+		result.cancel
+	  end
+      processerror(i,msg)
+	  return
+    end
 	puts "PID #{obj.pid} sucessfully created for #{i["oid"]}"
 	update = @@client.execute(%Q/update dbo.hydra_publish set hydraID='#{obj.pid}' where hpid=#{i["hpid"]}/)
     update.do
@@ -160,8 +174,10 @@ namespace :yulhy do
   def process_simple(i,cm,ppid)
     obj = nil 
 	if cm == "simple"
+	  puts "simple oid: #{i}"
       obj = Simple.new
 	elsif cm == "child"
+	  puts "child oid: #{i}"
 	  obj = ComplexChild.new
 	end  
 	obj.label = ("oid: #{i["oid"]}")
@@ -174,11 +190,11 @@ namespace :yulhy do
 	jpgchk = 0
 	begin
 	files.each do |file|
-      puts "file: #{file}"
+      puts %Q/file: #{file["type"]}/
 	  md5 = file["md5"]
       path = file["pathUNC"]	
       if file["type"] == "xml metadata"
-	    puts %Q/url: #{file["pathHTTP"]}/
+	    #puts %Q/url: #{file["pathHTTP"]}/
         modsfile = @tempdir + 'mods.xml'
         open(modsfile, 'wb') do |f|
           f << open(file["pathHTTP"]).read
@@ -188,7 +204,7 @@ namespace :yulhy do
         File.delete(modsfile)
 		metachk = 1
       elsif file["type"] == "xml access"
-        puts %Q/url: #{file["pathHTTP"]}/
+        #puts %Q/url: #{file["pathHTTP"]}/
         accessfile = @tempdir + 'access.xml'
         open(accessfile, 'wb') do |f|
           f << open(file["pathHTTP"]).read
@@ -198,7 +214,7 @@ namespace :yulhy do
         File.delete(accessfile)
 		accchk = 1
       elsif file["type"] =="xml rights"
-        puts %Q/url: #{file["pathHTTP"]}/
+        #puts %Q/url: #{file["pathHTTP"]}/
         rightsfile = @tempdir + 'rights.xml'
         open(rightsfile, 'wb') do |f|
           f << open(file["pathHTTP"]).read
@@ -209,14 +225,14 @@ namespace :yulhy do
 		rightschk = 1
 	  elsif file["type"] == "tif"
 		realpath = @mountroot + path[path.rindex('ladybird'),path.length].gsub(/\\/,'/')
-	    puts "path: #{realpath}"
+	    #puts "path: #{realpath}"
 		if File.new(realpath).size == 0 
 		  files.cancel
 		  processmsg(i,%Q/filesize 0 for #{file["type"]}/)
           return
 		end  
 	    digest = Digest::MD5.hexdigest(File.read(realpath))
-		puts "digest #{digest}"
+		#puts "digest #{digest}"
 	    if digest != md5
 	      files.cancel
 		  processmsg(i,%Q/failed checksum for #{file["type"]}/)
@@ -227,14 +243,14 @@ namespace :yulhy do
 		tifchk = 1  
 	  elsif file["type"] =="jp2"
 		realpath = @mountroot + path[path.rindex('ladybird'),path.length].gsub(/\\/,'/')
-	    puts "path: #{realpath}"
+	    #puts "path: #{realpath}"
 		if File.new(realpath).size == 0 
 		  files.cancel
 		  processmsg(i,%Q/filesize 0 for #{file["type"]}/)
           return
 		end
 	    digest = Digest::MD5.hexdigest(File.read(realpath))
-		puts "digest #{digest}"
+		#puts "digest #{digest}"
 	    if digest != md5
 	      files.cancel
 		  processmsg(i,%Q/failed checksum for #{file["type"]}/)
@@ -245,14 +261,14 @@ namespace :yulhy do
         jp2chk = 1
 	  elsif file["type"] =="jpg"
         realpath = @mountroot + path[path.rindex('ladybird'),path.length].gsub(/\\/,'/')
-	    puts "path: #{realpath}"
+	    #puts "path: #{realpath}"
 		if File.new(realpath).size == 0 
 		  files.cancel
 		  processmsg(i,%Q/filesize 0 for #{file["type"]}/)
           return
 		end
 	    digest = Digest::MD5.hexdigest(File.read(realpath))
-		puts "digest #{digest}"
+		#puts "digest #{digest}"
 	    if digest != md5
 	      files.cancel
 		  processmsg(i,%Q/failed checksum for #{file["type"]}/)
@@ -307,12 +323,11 @@ namespace :yulhy do
       begin 	
 	    update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=GETDATE() where hpid=#{j["hpid"]}/)
         update.do
-	    #process_child(i,j,ppid)
-		if j["oid"] == 10590509
+		#if j["oid"] == 10590509
           process_simple(j,"child",ppid)
-		else
-	      puts %Q/bypass processing child #{j["hpid"]} #{j["oid"]}/ 
-        end			
+		#else
+	    #  puts %Q/bypass processing child #{j["hpid"]} #{j["oid"]}/ 
+        #end			
 	    update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraEnd=GETDATE() where hpid=#{j["hpid"]}/)
 	    update.do
 	  rescue Exception => msg
@@ -327,36 +342,4 @@ namespace :yulhy do
 	  end
     }  
   end
-
-  def process_child(i,j,ppid)
-    obj = CompoundChild.new 
-	obj.label = ("oid:" << j["oid"] << " cid:" << j["cid"])
-    files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5 from dbo.hydra_publish where hpid=#{j["hpid"]}/)
-    files.each do |file|
-	  digest = Digest::MD5.hexdigest(File.read(pathUNC))
-	  if digest != md5
-	    processerror(i,"failed checksum for #{pathUNC}")
-		return
-	  end
-      if file["type"] == "mods"
-        #TODO obj.createdatastream
-      elsif file["type"] == "access"
-        #TODO obj.createdatastream
-      elsif file["type"] =="rights"
-        #TODO createdatatream
-	  elsif file["type"] == "tif"
-        #TODO obj.createdatastream
-      elsif file["type"] =="jp2"
-        #TODO createdatatream
-      elsif file["type"] =="jpeg"
-        #TODO createdatatream	
-      end
-	end
-	obj.add_relationship(:isMemberOf,i)
-	zindex = @@client.execute(%Q/select top 1 _zindex from dbo.c#{j["cid"]} where oid=#{j["oid"]}/)
-    parent = ppid
-	#DODO - create admin_metadata w/znumber and parent
-	obj.save
-	update = @@client.execute(%Q/update dbo.hydra_publish set hydraID=#{obj.pid} where hpid=#{j["hpid"]}/)	
-  end   
 end

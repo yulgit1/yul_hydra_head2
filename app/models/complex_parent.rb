@@ -12,7 +12,8 @@ class ComplexParent < ActiveFedora::Base
   delegate :projid, :to=>"propertyMetadata", :unique=>true
   delegate :cid, :to=>"propertyMetadata", :unique=>true
   delegate :zindex, :to=>"propertyMetadata", :unique=>true
-  delegate :parentoid, :to=>"propertyMetadata", :unique=>true 
+  delegate :parentoid, :to=>"propertyMetadata", :unique=>true
+  delegate :ztotal, :to=>"propertyMetadata", :unique=>true  
   
   #ERJ, has datastream (from::ActiveFedora::DatastreamCollections)  not used, params not propagated to fedora 
   #has_datastream :name => 'tif', :type=>ActiveFedora::Datastream,:mimeType=>"image/tiff", :controlGroup=>'M',:checksumType=>'MD5'

@@ -30,7 +30,10 @@ module Hydra
         
         t.subject(:path=>"subject") {
           t.topic(:path=>"topic")
-        }	
+        }
+		
+		t.display_label(:path=>"note",:attributes=>{:displayLabel=>"caption"})
+				
 	  end
 	  
 	  def extract_classifications
@@ -85,6 +88,14 @@ module Hydra
         end
         return names
       end
+
+	  def extract_display_label
+        notes = {}
+        self.find_by_terms(:display_label).each do |note| 
+          ::Solrizer::Extractor.insert_solr_field_value(notes, "display_label_s",note.text) 		  
+        end
+        return notes
+      end
 	  
 
 	  def to_solr(solr_doc=Hash.new)
@@ -95,7 +106,8 @@ module Hydra
         solr_doc.merge!(extract_alt_titles)
 	    solr_doc.merge!(extract_isbns)
 		solr_doc.merge!(extract_subjects)
-        solr_doc.merge!(:object_type_facet => "MODS described")
+		solr_doc.merge!(extract_display_label)
+        #solr_doc.merge!(:object_type_facet => "MODS described")
         solr_doc
       end
 

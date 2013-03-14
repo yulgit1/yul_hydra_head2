@@ -21,6 +21,7 @@ module Hydra
 		t.projid(:path=>"projid")
 		t.zindex(:path=>"zindex")
 		t.parentoid(:path=>"parentoid")
+		t.ztotal(:path=>"ztotal")
 			
 	  end
 	  
@@ -31,7 +32,8 @@ module Hydra
 			xml.cid
 			xml.projid
 			xml.zindex
-            xml.parentoid			
+            xml.parentoid
+            xml.ztotal			
 		  end
 		end.doc
 	  end
@@ -72,6 +74,14 @@ module Hydra
           ::Solrizer::Extractor.insert_solr_field_value(terms, "parentoid_i",term.text)		  
         end
         return terms
+      end
+
+      def extract_ztotal
+        terms = {}
+        self.find_by_terms(:ztotal).each do |term| 
+          ::Solrizer::Extractor.insert_solr_field_value(terms, "ztotal_i",term.text)		  
+        end
+        return terms
       end	  
 	  
 	  def to_solr(solr_doc=Hash.new)
@@ -81,6 +91,7 @@ module Hydra
         solr_doc.merge!(extract_projid)
 		solr_doc.merge!(extract_zindex)
 		solr_doc.merge!(extract_parentoid)
+		solr_doc.merge!(extract_ztotal)
         solr_doc
       end
 
