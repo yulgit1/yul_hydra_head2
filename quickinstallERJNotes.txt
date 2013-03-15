@@ -1,0 +1,32 @@
+deploying the project (for reference: https://help.github.com/articles/fork-a-repo)
+  fork from: https://github.com/yalelibrary/yul_hydra_head2
+  git clone https://github.com/<youraccount>/yul_hydra_head2.git
+  cd yul_hydra_head2
+  git clone git://github.com/projecthydra/hydra-jetty.git ../jetty
+  cp -R ../jetty jetty
+  bundle install
+
+starting the jetty server (which deploys fedora and solr)  
+  rake jetty:start
+
+accessing the jetty server (replace libserver3 with your server)  
+  http://libserver3.yale.edu:8983
+    (should display 404 ERROR screen with links to contexts) 
+    contexts most likely to use:
+      http://libserver3.yale.edu:8983/fedora
+	  http://libserver3.yale.edu:8983/solr/#/
+	
+ingest rake tasks
+  rake yulhy:hydra_publish_refresh
+    for refreshing the production database before a test ingest
+    caution: we don't have a test db, this refreshes pamoja production!
+  rake yulhy:delete_fedora
+    for deleting fedora and solr in local instance of jetty
+    usage example:
+	  yulhy:delete_fedora[changeme,1,200]
+	    deletes all PIDs between changeme 1 and 200
+  rake yulhy:ingest
+    looks for all eligible records in hydra_publish table and ingests them
+	recommended usage example:
+	  rake yulhy:ingest > ingest.txt
+ 	
