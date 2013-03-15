@@ -41,8 +41,8 @@ namespace :yulhy do
         pid = ns+":"+cnt
         #puts pid
 		begin
-		  result = ActiveFedora::Base.find(pid)
-		  puts result
+		  result = ActiveFedora::Base.find(pid).delete
+		  #puts result
 		  puts "DELETED #{pid}"
 		rescue
 		  puts "SKIPPING #{pid}"
