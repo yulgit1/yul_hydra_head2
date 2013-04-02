@@ -62,7 +62,7 @@ module Hydra
 		  t.language_of_cataloging(:path=>"languageOfCataloging")
 		}
 		#t.plain_note(:path=>"note",:attributes=>{:type=>:none})
-		t.plain_note(:path=>"note")
+		t.plain_note(:path=>"note",:attributes=>{:displayLabel=>:none})
 		#
 		t.note_course_info(:path=>"note",:attributes=>{:displayLabel=>"Course Info"})
 		t.note_related(:path=>"note",:attributes=>{:displayLabel=>"Related Exhibit or Resource"})
@@ -99,7 +99,7 @@ module Hydra
         #
 		t.issn(:path=>"identifier",:attributes=>{:type=>"issn"})
 		
-        t.subject(:path=>"subject",:attributes=>{:type=>:none}) {
+        t.subject(:path=>"subject",:attributes=>{:displayLabel=>:none}) {
           t.topic(:path=>"topic")
 		  #
 		  t.keyDate(:path=>"temporal",:attributes=>{:keyDate=>"yes"})
@@ -194,21 +194,21 @@ module Hydra
       end
 	  def extract_o_i_edition
         extracts = {}
-        self.find_by_terms(:origin_info,:o_i_edition).each do |extract| 
+        self.find_by_terms(:mods,:origin_info,:o_i_edition).each do |extract| 
           ::Solrizer::Extractor.insert_solr_field_value(extracts, "o_i_edition_t", extract.text) 		  
         end
         return extracts
       end
 	  def extract_o_i_place
         extracts = {}
-        self.find_by_terms(:origin_info,:o_i_place).each do |extract| 
+        self.find_by_terms(:mods,:origin_info,:o_i_place).each do |extract| 
           ::Solrizer::Extractor.insert_solr_field_value(extracts, "o_i_place_t", extract.text) 		  
         end
         return extracts
       end
 	  def extract_o_i_publisher
         extracts = {}
-        self.find_by_terms(:origin_info,:o_i_publisher).each do |extract| 
+        self.find_by_terms(:mods,:origin_info,:o_i_publisher).each do |extract| 
           ::Solrizer::Extractor.insert_solr_field_value(extracts, "o_i_publisher_t", extract.text) 		  
         end
         return extracts
@@ -259,7 +259,7 @@ module Hydra
       end
 	  def extract_note
         extracts = {}
-        self.find_by_terms(:plain_note).each do |extract| 
+        self.find_by_terms(:mods,:plain_note).each do |extract| 
           ::Solrizer::Extractor.insert_solr_field_value(extracts, "note_t",extract.text)
         end
         return extracts
@@ -469,7 +469,7 @@ module Hydra
 	  
 	  def extract_names
         extracts = {}
-        self.find_by_terms(:name,:namePart).each do |extract| 
+        self.find_by_terms(:mods,:name,:namePart).each do |extract| 
           ::Solrizer::Extractor.insert_solr_field_value(extracts, "name_namePart_t",extract.text)
           ::Solrizer::Extractor.insert_solr_field_value(extracts, "name_namePart_facet",extract.text)		  
         end
@@ -478,7 +478,7 @@ module Hydra
 	  
 	  def extract_titles
         extracts = {}
-        self.find_by_terms(:title_info,:main_title).each do |extract| 
+        self.find_by_terms(:mods,:title_info,:main_title).each do |extract| 
           ::Solrizer::Extractor.insert_solr_field_value(extracts, "main_title_t", extract.text) 
         end
         return extracts
@@ -502,7 +502,7 @@ module Hydra
 
 	  def extract_subjects
         extracts = {}
-        self.find_by_terms(:subject,:topic).each do |extract| 
+        self.find_by_terms(:mods,:subject,:topic).each do |extract| 
           ::Solrizer::Extractor.insert_solr_field_value(extracts, "subject_topic_t",extract.text)
           ::Solrizer::Extractor.insert_solr_field_value(extracts, "subject_topic_facet",extract.text)		  
         end
