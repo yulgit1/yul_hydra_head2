@@ -15,7 +15,7 @@ module Hydra
         t.root(:path=>"mods", :xmlns=>"http://www.loc.gov/mods/v3", :schema=>"http://www.loc.gov/standards/mods/v3/mods-3-2.xsd")
 
 		
-		t.accession_number(:path=>"identifier",:attributes=>{:displayLabel=>"Accession number"})
+		t.accession_number(:path=>"identifier",:attributes=>{:type=>"Accession number"})
 		t.related_item(:path=>"relatedItem",:attributes=>{:type=>:none}) {
 		  t.part(:path=>"part") {
 		    t.detail_box(:path=>"detail",:attributes=>{:type=>"box"}) {
@@ -25,7 +25,7 @@ module Hydra
 			  t.caption_folder(:path=>"caption")
 			}
 		  }
-		  t.r_i_orbis(:path=>"identifer",:attributes=>{:displayLabel=>"Link to Orbis record"})
+		  t.r_i_orbis(:path=>"identifier",:attributes=>{:displayLabel=>"Link to Orbis record"})
 		  t.r_i_orbis_barcode(:path=>"identifier",:attributes=>{:displayLabel=>"Orbis barcode"})
 		  t.r_i_finding_aid(:path=>"identifier",:attributes=>{:displayLabel=>"Link to Finding Aid"})
 		  t.r_i_url(:path=>"url")
@@ -117,7 +117,7 @@ module Hydra
 		t.s_style(:path=>"subject",:attributes=>{:displayLabel=>"Style"})
 		t.s_culture(:path=>"subject",:attributes=>{:displayLabel=>"Culture"})
 		#
-		t.s_divinity(:path=>"subject",:attributes=>{:displayLabel=>"Divinitiy Subject"})
+		t.s_divinity(:path=>"subject",:attributes=>{:displayLabel=>"Divinity Subject"})
 		
 		t.display_label(:path=>"note",:attributes=>{:displayLabel=>"caption"})			
 	  end
