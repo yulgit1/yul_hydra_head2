@@ -8,12 +8,13 @@ module Hydra
 	
 	  set_terminology do |t|
 	    t.root(:path=>"schema")
-		t.object(:path=>"object") {
-		  t.digitalFormats(:path=>"digitalFormats",:attributes=>{:type=>"tif"}) {
-		    t.rule(:path=>"rule") {
-		    }
-		  }    
-		}		    
+            t.object(:path=>"object") {
+              t.digitalFormats(:path=>"digitalFormats",:attributes=>{:type=>"tif"}) {
+                t.tif_rule_150(:path=>"rule",:attributes=>{:type=>"150"}) {
+                  t.tif_code_150(:path=>{:attribute=>"code"})
+		}
+              }    
+            }		    
 	  end
     end
   end
