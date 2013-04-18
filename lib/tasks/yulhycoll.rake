@@ -34,5 +34,33 @@ namespace :yulhy do
       puts %Q/You entered '#{yorn}', exiting, try again with a 'y' or 'n'/
     end	  
     #ActiveFedora::Base.find("hydrangea:fixture_mods_article1").delete
+  end
+  desc "test solr"
+  task :test_solr do
+    #include Blacklight::SolrHelper
+    cid = 2
+    pid = 1
+    puts get_coll_pid(cid,pid)
+    #query = "cid_i:"+cid.to_s+" && projid_i:"+pid.to_s
+    #blacklight_solr_config = Blacklight.solr_config
+    #puts query
+    #puts blacklight_solr_config
+    #blacklight_solr = RSolr.connect(blacklight_solr_config)
+    #response = blacklight_solr.get("select",:params=> {:fq => query,:fl =>"id"})
+    #@solr_response = Blacklight::SolrResponse.new(force_to_utf8(response),{:fq => query,:fl => "id"})
+    #id = @solr_response["response"]["docs"][0]["id"]
+    #puts id
+  end
+  def get_coll_pid(cid,pid)
+    query = "cid_i:"+cid.to_s+" && projid_i:"+pid.to_s
+    blacklight_solr_config = Blacklight.solr_config
+    #puts query
+    #puts blacklight_solr_config
+    blacklight_solr = RSolr.connect(blacklight_solr_config)
+    puts blacklight_solr.inspect
+    response = blacklight_solr.get("select",:params=> {:fq => query,:fl =>"id"})
+    #@solr_response = Blacklight::SolrResponse.new(force_to_utf8(response),{:fq => query,:fl => "id"})
+    id = response["response"]["docs"][0]["id"]
+    id
   end	  
 end

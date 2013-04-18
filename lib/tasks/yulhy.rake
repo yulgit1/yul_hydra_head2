@@ -10,6 +10,7 @@ namespace :yulhy do
   desc "ingest from ladybird"
   task :ingest do
     puts "Running ladybird ingest"
+    puts Time.now
 	puts "requirement: root of share must be 'ladybird'"
     #client = TinyTds::Client.new(:username => 'pamojaReader',:password => 'plQ(*345',:host => 'blues.library.yale.edu',:database => 'pamoja')
     @@client = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
@@ -26,15 +27,18 @@ namespace :yulhy do
 	puts "batch mounted as " + @mountroot
 	@tempdir = "/home/ermadmix/"
 	puts "temp directory" + @tempdir
+	@blacklight_solr_config = Blacklight.solr_config
+	puts "solr host:" + @blacklight_solr_config.inspect
 	@cnt=0
     processoids()
     @@client.close
+    puts Time.now
   end
 
   def processoids()
 	@cnt += 1
 	puts @cnt
-    result = @@client.execute("select top 1 hpid,oid,cid,pid,contentModel,_oid,zindex from dbo.hydra_publish where dateHydraStart is null and dateReady is not null and _oid=0 order by date")
+    result = @@client.execute("select top 1 hpid,oid,cid,pid,contentModel,_oid,zindex from dbo.hydra_publish where dateHydraStart is null and dateReady is not null and _oid=0 order by dateReady")
     result.fields.to_s
 	if result.affected_rows == 0
       @@client.close
@@ -47,7 +51,8 @@ namespace :yulhy do
           processerror(i,msg)
         end		  
       end
-	  if @cnt > 30 
+	  if @cnt > 1300
+	    puts Time.now
 	    abort("prevent infinite loop")
 	  end	  
       processoids()
@@ -93,43 +98,49 @@ namespace :yulhy do
     puts "complex oid: #{i}"  
     obj = ComplexParent.new 
 	obj.label = ("oid: #{i["oid"]}")
-    files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5 from dbo.hydra_publish_path where hpid=#{i["hpid"]}/)
+    files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5,controlGroup,mimeType,dsid,ingestMethod from dbo.hydra_publish_path where hpid=#{i["hpid"]}/)
     metachk = 0
 	accchk = 0
 	rightschk = 0
 	begin
 	files.each do |file|
       puts %Q/file: #{file["type"]}/
+	  type = file["type"]
 	  md5 = file["md5"]
-      path = file["pathUNC"]	
-      if file["type"] == "xml metadata"
+      pathUNC = file["pathUNC"]
+	  pathHTTP = file["pathHTTP"]
+      controlGroup = file["controlGroup"]
+      mimeType = file["mimeType"]
+      dsid = file["dsid"]
+      ingestMethod = file["ingestMethod"] 
+      if type == "xml metadata"
 	    #puts %Q/url: #{file["pathHTTP"]}/
         modsfile = @tempdir + 'mods.xml'
         open(modsfile, 'wb') do |f|
-          f << open(file["pathHTTP"]).read
+          f << open(pathHTTP).read
         end
         ff = File.new(modsfile)
-        obj.add_file_datastream(ff,:controlGroup=>'M',:mimeType=>'text/xml',:dsid=>'descMetadata')
+        obj.add_file_datastream(ff,:controlGroup=>controlGroup,:mimeType=>mimeType,:dsid=>dsid)
         File.delete(modsfile)
 		metachk = 1
-      elsif file["type"] == "xml access"
+      elsif type == "xml access"
         #puts %Q/url: #{file["pathHTTP"]}/
         accessfile = @tempdir + 'access.xml'
         open(accessfile, 'wb') do |f|
-          f << open(file["pathHTTP"]).read
+          f << open(pathHTTP).read
         end
         ff = File.new(accessfile)
-        obj.add_file_datastream(ff,:controlGroup=>'M',:mimeType=>'text/xml',:dsid=>'accessMetadata')
+        obj.add_file_datastream(ff,:controlGroup=>controlGroup,:mimeType=>mimeType,:dsid=>dsid)
         File.delete(accessfile)
 		accchk = 1
-      elsif file["type"] =="xml rights"
+      elsif type =="xml rights"
         #puts %Q/url: #{file["pathHTTP"]}/
         rightsfile = @tempdir + 'rights.xml'
         open(rightsfile, 'wb') do |f|
-          f << open(file["pathHTTP"]).read
+          f << open(pathHTTP).read
         end
         ff = File.new(rightsfile)
-        obj.add_file_datastream(ff,:controlGroup=>'M',:mimeType=>'text/xml',:dsid=>'rightsMetadata')
+        obj.add_file_datastream(ff,:controlGroup=>controlGroup,:mimeType=>mimeType,:dsid=>dsid)
         File.delete(rightsfile)
 		rightschk = 1
       end
@@ -152,6 +163,13 @@ namespace :yulhy do
 	obj.projid = i["pid"]
 	obj.zindex = i["zindex"]
 	obj.parentoid = i["_oid"]
+	collection_pid = get_coll_pid(i["cid"],i["pid"])
+	if collection_pid.size==0
+	  processmsg(i,"collection pid not found")
+	  return
+	end  
+	collection_pid_uri = "info:fedora/#{collection_pid}"
+	obj.add_relationship(:is_member_of,collection_pid_uri)
 	begin
 	  result = @@client.execute(%Q/select max(zindex) as total from dbo.hydra_publish where _oid = #{i["oid"]}/)
 	  result.each do |i|
@@ -181,7 +199,7 @@ namespace :yulhy do
 	  obj = ComplexChild.new
 	end  
 	obj.label = ("oid: #{i["oid"]}")
-    files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5 from dbo.hydra_publish_path where hpid=#{i["hpid"]}/)
+    files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5,controlGroup,mimeType,dsid,ingestMethod from dbo.hydra_publish_path where hpid=#{i["hpid"]}/)
     metachk = 0
 	accchk = 0
 	rightschk = 0
@@ -191,91 +209,97 @@ namespace :yulhy do
 	begin
 	files.each do |file|
       puts %Q/file: #{file["type"]}/
+      type = file["type"]
 	  md5 = file["md5"]
-      path = file["pathUNC"]	
-      if file["type"] == "xml metadata"
+      pathUNC = file["pathUNC"]
+	  pathHTTP = file["pathHTTP"]
+      controlGroup = file["controlGroup"]
+      mimeType = file["mimeType"]
+      dsid = file["dsid"] 
+      ingestMethod = file["ingestMethod"]	  
+      if type == "xml metadata"
 	    #puts %Q/url: #{file["pathHTTP"]}/
         modsfile = @tempdir + 'mods.xml'
         open(modsfile, 'wb') do |f|
-          f << open(file["pathHTTP"]).read
+          f << open(pathHTTP).read
         end
         ff = File.new(modsfile)
-        obj.add_file_datastream(ff,:controlGroup=>'M',:mimeType=>'text/xml',:dsid=>'descMetadata')
+        obj.add_file_datastream(ff,:controlGroup=>controlGroup,:mimeType=>mimeType,:dsid=>dsid)
         File.delete(modsfile)
 		metachk = 1
-      elsif file["type"] == "xml access"
+      elsif type == "xml access"
         #puts %Q/url: #{file["pathHTTP"]}/
         accessfile = @tempdir + 'access.xml'
         open(accessfile, 'wb') do |f|
-          f << open(file["pathHTTP"]).read
+          f << open(pathHTTP).read
         end
         ff = File.new(accessfile)
-        obj.add_file_datastream(ff,:controlGroup=>'M',:mimeType=>'text/xml',:dsid=>'accessMetadata')
+        obj.add_file_datastream(ff,:controlGroup=>controlGroup,:mimeType=>mimeType,:dsid=>dsid)
         File.delete(accessfile)
 		accchk = 1
-      elsif file["type"] =="xml rights"
+      elsif type =="xml rights"
         #puts %Q/url: #{file["pathHTTP"]}/
         rightsfile = @tempdir + 'rights.xml'
         open(rightsfile, 'wb') do |f|
-          f << open(file["pathHTTP"]).read
+          f << open(pathHTTP).read
         end
         ff = File.new(rightsfile)
-        obj.add_file_datastream(ff,:controlGroup=>'M',:mimeType=>'text/xml',:dsid=>'rightsMetadata')
+        obj.add_file_datastream(ff,:controlGroup=>controlGroup,:mimeType=>mimeType,:dsid=>dsid)
         File.delete(rightsfile)
 		rightschk = 1
-	  elsif file["type"] == "tif"
-		realpath = @mountroot + path[path.rindex('ladybird'),path.length].gsub(/\\/,'/')
+	  elsif type == "tif"
+		realpath = @mountroot + pathUNC[pathUNC.rindex('ladybird'),pathUNC.length].gsub(/\\/,'/')
 	    #puts "path: #{realpath}"
 		if File.new(realpath).size == 0 
 		  files.cancel
-		  processmsg(i,%Q/filesize 0 for #{file["type"]}/)
+		  processmsg(i,%Q/filesize 0 for #{type}/)
           return
 		end  
 	    digest = Digest::MD5.hexdigest(File.read(realpath))
 		#puts "digest #{digest}"
 	    if digest != md5
 	      files.cancel
-		  processmsg(i,%Q/failed checksum for #{file["type"]}/)
+		  processmsg(i,%Q/failed checksum for #{type}/)
           return
         end
 		tiffile = File.new(realpath)
-        obj.add_file_datastream(tiffile,:dsid=>'tif',:mimeType=>"image/tiff", :controlGroup=>'M',:checksumType=>'MD5')
+        obj.add_file_datastream(tiffile,:dsid=>dsid,:mimeType=>mimeType, :controlGroup=>controlGroup,:checksumType=>'MD5')
 		tifchk = 1  
 	  elsif file["type"] =="jp2"
-		realpath = @mountroot + path[path.rindex('ladybird'),path.length].gsub(/\\/,'/')
+		realpath = @mountroot + pathUNC[pathUNC.rindex('ladybird'),pathUNC.length].gsub(/\\/,'/')
 	    #puts "path: #{realpath}"
 		if File.new(realpath).size == 0 
 		  files.cancel
-		  processmsg(i,%Q/filesize 0 for #{file["type"]}/)
+		  processmsg(i,%Q/filesize 0 for #{type}/)
           return
 		end
 	    digest = Digest::MD5.hexdigest(File.read(realpath))
 		#puts "digest #{digest}"
 	    if digest != md5
 	      files.cancel
-		  processmsg(i,%Q/failed checksum for #{file["type"]}/)
+		  processmsg(i,%Q/failed checksum for #{type}/)
           return
         end
         jp2file = File.new(realpath)
-        obj.add_file_datastream(jp2file,:dsid=>'jp2',:mimeType=>"image/jp2", :controlGroup=>'M',:checksumType=>'MD5')
+        obj.add_file_datastream(jp2file,:dsid=>dsid,:mimeType=>mimeType, :controlGroup=>controlGroup,:checksumType=>'MD5')
         jp2chk = 1
 	  elsif file["type"] =="jpg"
-        realpath = @mountroot + path[path.rindex('ladybird'),path.length].gsub(/\\/,'/')
+        realpath = @mountroot + pathUNC[pathUNC.rindex('ladybird'),pathUNC.length].gsub(/\\/,'/')
 	    #puts "path: #{realpath}"
 		if File.new(realpath).size == 0 
 		  files.cancel
-		  processmsg(i,%Q/filesize 0 for #{file["type"]}/)
+		  processmsg(i,%Q/filesize 0 for #{type}/)
           return
 		end
 	    digest = Digest::MD5.hexdigest(File.read(realpath))
 		#puts "digest #{digest}"
 	    if digest != md5
 	      files.cancel
-		  processmsg(i,%Q/failed checksum for #{file["type"]}/)
+		  processmsg(i,%Q/failed checksum for #{type}/)
           return
         end
         jpgfile = File.new(realpath)
-        obj.add_file_datastream(jpgfile,:dsid=>'jpg',:mimeType=>"image/jpg", :controlGroup=>'M',:checksumType=>'MD5')   		
+        obj.add_file_datastream(jpgfile,:dsid=>dsid,:mimeType=>mimeType, :controlGroup=>controlGroup,:checksumType=>'MD5')   		
         jpgchk = 1
 	  end
 	end
@@ -304,6 +328,14 @@ namespace :yulhy do
 	  if cm == "child"
 	    pid_uri = "info:fedora/#{ppid}"
 	    obj.add_relationship(:is_member_of,pid_uri)
+	  elsif cm == "simple"
+        collection_pid = get_coll_pid(i["cid"],i["pid"])
+		if collection_pid.size==0
+	      processmsg(i,"collection pid not found")
+	      return
+	    end  
+		collection_pid_uri = "info:fedora/#{collection_pid}"
+	    obj.add_relationship(:is_member_of,collection_pid_uri)	  
 	  end
 	  obj.save
 	rescue Exception => msg
@@ -342,4 +374,12 @@ namespace :yulhy do
 	  end
     }  
   end
+  def get_coll_pid(cid,pid)
+    query = "cid_i:"+cid.to_s+" && projid_i:"+pid.to_s
+    blacklight_solr = RSolr.connect(@blacklight_solr_config)
+    response = blacklight_solr.get("select",:params=> {:fq => query,:fl =>"id"})
+    id = response["response"]["docs"][0]["id"]
+    id
+  end
+
 end

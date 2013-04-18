@@ -51,3 +51,4 @@ gem "solrizer-fedora"
 gem "solrizer"
 
 gem "rspec"
+gem "blacklight"
