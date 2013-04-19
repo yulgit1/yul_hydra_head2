@@ -83,7 +83,8 @@ namespace :yulhy do
     linenum = errormsg.backtrace[0].split(':')[1]
 	dberror = "[#{linenum}] #{errormsg}"
     puts "error for oid: #{i["oid"]} errormsg: #{dberror}"
-	#puts "STACK:" + errormsg.backtrace.to_s
+	puts "ERROR:" + errormsg.backtrace.to_s
+	puts "STACK:" + errormsg.backtrace.to_s
 	ehid = @@client.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{dberror}")/)
 	ehid.insert
   end
@@ -105,14 +106,14 @@ namespace :yulhy do
 	begin
 	files.each do |file|
       puts %Q/file: #{file["type"]}/
-	  type = file["type"]
-	  md5 = file["md5"]
-      pathUNC = file["pathUNC"]
-	  pathHTTP = file["pathHTTP"]
-      controlGroup = file["controlGroup"]
-      mimeType = file["mimeType"]
-      dsid = file["dsid"]
-      ingestMethod = file["ingestMethod"] 
+	  type = file["type"].strip
+	  md5 = file["md5"].strip
+      pathUNC = file["pathUNC"].strip
+	  pathHTTP = file["pathHTTP"].strip
+      controlGroup = file["controlGroup"].strip
+      mimeType = file["mimeType"].strip
+      dsid = file["dsid"].strip
+      ingestMethod = file["ingestMethod"] .strip
       if type == "xml metadata"
 	    #puts %Q/url: #{file["pathHTTP"]}/
         modsfile = @tempdir + 'mods.xml'
@@ -209,14 +210,14 @@ namespace :yulhy do
 	begin
 	files.each do |file|
       puts %Q/file: #{file["type"]}/
-      type = file["type"]
-	  md5 = file["md5"]
-      pathUNC = file["pathUNC"]
-	  pathHTTP = file["pathHTTP"]
-      controlGroup = file["controlGroup"]
-      mimeType = file["mimeType"]
-      dsid = file["dsid"] 
-      ingestMethod = file["ingestMethod"]	  
+      type = file["type"].strip
+	  md5 = file["md5"].strip
+      pathUNC = file["pathUNC"].strip
+	  pathHTTP = file["pathHTTP"].strip
+      controlGroup = file["controlGroup"].strip
+      mimeType = file["mimeType"].strip
+      dsid = file["dsid"].strip
+      ingestMethod = file["ingestMethod"].strip 
       if type == "xml metadata"
 	    #puts %Q/url: #{file["pathHTTP"]}/
         modsfile = @tempdir + 'mods.xml'
@@ -224,6 +225,10 @@ namespace :yulhy do
           f << open(pathHTTP).read
         end
         ff = File.new(modsfile)
+		puts "ff:"+ff.size.to_s
+		puts "cg:"+controlGroup
+		puts "mimeType:"+mimeType
+		puts "dsid:"+dsid 
         obj.add_file_datastream(ff,:controlGroup=>controlGroup,:mimeType=>mimeType,:dsid=>dsid)
         File.delete(modsfile)
 		metachk = 1
@@ -299,7 +304,7 @@ namespace :yulhy do
           return
         end
         jpgfile = File.new(realpath)
-        obj.add_file_datastream(jpgfile,:dsid=>dsid,:mimeType=>mimeType, :controlGroup=>controlGroup,:checksumType=>'MD5')   		
+        obj.add_file_datastream(jpgfile,:dsid=>dsid,:mimeType=>mimeType, :controlGroup=>controlGroup,:checksumType=>'MD5')  		
         jpgchk = 1
 	  end
 	end
@@ -333,8 +338,9 @@ namespace :yulhy do
 		if collection_pid.size==0
 	      processmsg(i,"collection pid not found")
 	      return
-	    end  
+	    end		
 		collection_pid_uri = "info:fedora/#{collection_pid}"
+		#puts collection_pid_uri = "C:"+collection_pid_uri#ERJ
 	    obj.add_relationship(:is_member_of,collection_pid_uri)	  
 	  end
 	  obj.save
