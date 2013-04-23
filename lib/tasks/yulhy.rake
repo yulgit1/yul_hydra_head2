@@ -51,7 +51,7 @@ namespace :yulhy do
           processerror(i,msg)
         end		  
       end
-	  if @cnt > 1300
+	  if @cnt > 2
 	    puts Time.now
 	    abort("prevent infinite loop")
 	  end	  
@@ -380,10 +380,14 @@ namespace :yulhy do
 	  end
     }  
   end
-  def get_coll_pid(cid,pid)
-    query = "cid_i:"+cid.to_s+" && projid_i:"+pid.to_s
+  def get_coll_pid(cid,pid) 
+    query = "cid_i:"+cid.to_s+" && projid_i:"+pid.to_s+" && active_fedora_model_s:Collection"
+	#puts "Q:"+query
     blacklight_solr = RSolr.connect(@blacklight_solr_config)
+	#puts "B:"+blacklight_solr.inspect
     response = blacklight_solr.get("select",:params=> {:fq => query,:fl =>"id"})
+	#puts "R:"+response
+	puts "No Collection found for cid:"+cid.to_s+" pid:"+pid.to_s if response["response"]["numFound"] == 0 
     id = response["response"]["docs"][0]["id"]
     id
   end

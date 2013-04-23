@@ -35,6 +35,7 @@ namespace :yulhy do
     end	  
     #ActiveFedora::Base.find("hydrangea:fixture_mods_article1").delete
   end
+=begin
   desc "test solr"
   task :test_solr do
     #include Blacklight::SolrHelper
@@ -52,7 +53,7 @@ namespace :yulhy do
     #puts id
   end
   def get_coll_pid(cid,pid)
-    query = "cid_i:"+cid.to_s+" && projid_i:"+pid.to_s
+    query = "cid_i:"+cid.to_s+" && projid_i:"+pid.to_s+" && active_fedora_model_s:Collection"
     blacklight_solr_config = Blacklight.solr_config
     #puts query
     #puts blacklight_solr_config
@@ -60,7 +61,11 @@ namespace :yulhy do
     puts blacklight_solr.inspect
     response = blacklight_solr.get("select",:params=> {:fq => query,:fl =>"id"})
     #@solr_response = Blacklight::SolrResponse.new(force_to_utf8(response),{:fq => query,:fl => "id"})
+    #puts "R:"+response["response"].inspect
+    puts "No Collection found for cid:"+cid.to_s+" pid:"+pid.to_s if response["response"]["numFound"] == 0
+    #puts "S:"+response["response"]["numFound"]
     id = response["response"]["docs"][0]["id"]
     id
-  end	  
+  end
+=end	  
 end
