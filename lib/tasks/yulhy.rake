@@ -51,7 +51,7 @@ namespace :yulhy do
           processerror(i,msg)
         end		  
       end
-	  if @cnt > 2
+	  if @cnt > 600
 	    puts Time.now
 	    abort("prevent infinite loop")
 	  end	  
