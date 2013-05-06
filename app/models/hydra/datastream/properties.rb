@@ -22,6 +22,7 @@ module Hydra
 		t.zindex(:path=>"zindex")
 		t.parentoid(:path=>"parentoid")
 		t.ztotal(:path=>"ztotal")
+		t.oidpointer(:path=>"oidpointer")
 			
 	  end
 	  
@@ -33,7 +34,8 @@ module Hydra
 			xml.projid
 			xml.zindex
             xml.parentoid
-            xml.ztotal			
+            xml.ztotal
+            xml.oidpointer			
 		  end
 		end.doc
 	  end
@@ -82,7 +84,15 @@ module Hydra
           ::Solrizer::Extractor.insert_solr_field_value(terms, "ztotal_i",term.text)		  
         end
         return terms
-      end	  
+      end
+
+	  def extract_oidpointer
+        terms = {}
+        self.find_by_terms(:oidpointer).each do |term| 
+          ::Solrizer::Extractor.insert_solr_field_value(terms, "oidpointer_i",term.text)		  
+        end
+        return terms
+      end
 	  
 	  def to_solr(solr_doc=Hash.new)
         super(solr_doc)
@@ -92,6 +102,7 @@ module Hydra
 		solr_doc.merge!(extract_zindex)
 		solr_doc.merge!(extract_parentoid)
 		solr_doc.merge!(extract_ztotal)
+		solr_doc.merge!(extract_oidpointer)
         solr_doc
       end
 

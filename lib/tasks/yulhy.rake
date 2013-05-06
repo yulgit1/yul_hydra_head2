@@ -99,7 +99,7 @@ namespace :yulhy do
     puts "complex oid: #{i}"  
     obj = ComplexParent.new 
 	obj.label = ("oid: #{i["oid"]}")
-    files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5,controlGroup,mimeType,dsid,ingestMethod from dbo.hydra_publish_path where hpid=#{i["hpid"]}/)
+    files = @@client.execute(%Q/select type,pathHTTP,pathUNC,md5,controlGroup,mimeType,dsid,ingestMethod,OIDpointer from dbo.hydra_publish_path where hpid=#{i["hpid"]}/)
     metachk = 0
 	accchk = 0
 	rightschk = 0
@@ -114,6 +114,7 @@ namespace :yulhy do
       mimeType = file["mimeType"].strip
       dsid = file["dsid"].strip
       ingestMethod = file["ingestMethod"] .strip
+	  oidpointer = file["OIDpointer"] .strip
       if type == "xml metadata"
 	    #puts %Q/url: #{file["pathHTTP"]}/
         modsfile = @tempdir + 'mods.xml'
@@ -164,6 +165,7 @@ namespace :yulhy do
 	obj.projid = i["pid"]
 	obj.zindex = i["zindex"]
 	obj.parentoid = i["_oid"]
+	obj.oidpointer = oidpointer
 	collection_pid = get_coll_pid(i["cid"],i["pid"])
 	if collection_pid.size==0
 	  processmsg(i,"collection pid not found")

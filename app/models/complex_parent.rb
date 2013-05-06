@@ -3,6 +3,9 @@ class ComplexParent < ActiveFedora::Base
   #ERJ, below for reference 
   #include ::ActiveFedora::DatastreamCollections
   #include ::ActiveFedora::Relationships
+  
+  belongs_to :collection :property=> :is_member_of
+  
   has_metadata :name => 'descMetadata', :type => Hydra::Datastream::SimpleMods
   has_metadata :name => 'accessMetadata', :type => Hydra::Datastream::AccessConditions
   has_metadata :name => 'rightsMetadata', :type => Hydra::Datastream::Rights
@@ -13,7 +16,8 @@ class ComplexParent < ActiveFedora::Base
   delegate :cid, :to=>"propertyMetadata", :unique=>true
   delegate :zindex, :to=>"propertyMetadata", :unique=>true
   delegate :parentoid, :to=>"propertyMetadata", :unique=>true
-  delegate :ztotal, :to=>"propertyMetadata", :unique=>true  
+  delegate :ztotal, :to=>"propertyMetadata", :unique=>true
+  delegate :oidpointer, :to=>"propertyMetadata", :unique=>true
   
   #ERJ, has datastream (from::ActiveFedora::DatastreamCollections)  not used, params not propagated to fedora 
   #has_datastream :name => 'tif', :type=>ActiveFedora::Datastream,:mimeType=>"image/tiff", :controlGroup=>'M',:checksumType=>'MD5'
