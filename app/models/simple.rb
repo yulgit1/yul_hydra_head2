@@ -1,6 +1,6 @@
 require "active-fedora"
 class Simple < ActiveFedora::Base
-  belongs_to :collection :property=> :is_member_of
+  belongs_to :collection, :property=> :is_member_of
   
   has_metadata :name => 'descMetadata', :type => Hydra::Datastream::SimpleMods
   has_metadata :name => 'accessMetadata', :type => Hydra::Datastream::AccessConditions
