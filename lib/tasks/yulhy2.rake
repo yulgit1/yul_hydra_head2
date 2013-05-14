@@ -17,9 +17,29 @@ namespace :yulhy2 do
       abort("TASK ABORTED: client1 could not connect to db")
     end
 	@@client2 = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
-    puts "client2 connection to db OK? #{@@client.active?}"
+    puts "client2 connection to db OK? #{@@client2.active?}"
     if @@client2.active? == false
       abort("TASK ABORTED: client2 could not connect to db")
+    end
+	@@client3 = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
+    puts "client3 connection to db OK? #{@@client3.active?}"
+    if @@client3.active? == false
+      abort("TASK ABORTED: client3 could not connect to db")
+    end
+	@@client4 = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
+    puts "client4 connection to db OK? #{@@client4.active?}"
+    if @@client4.active? == false
+      abort("TASK ABORTED: client4 could not connect to db")
+    end
+	@@client5 = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
+    puts "client5 connection to db OK? #{@@client5.active?}"
+    if @@client5.active? == false
+      abort("TASK ABORTED: client5 could not connect to db")
+    end
+	@@client6 = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
+    puts "client6 connection to db OK? #{@@client6.active?}"
+    if @@client6.active? == false
+      abort("TASK ABORTED: client6 could not connect to db")
     end
 	@mountroot = "/home/ermadmix/libshare/"
 	puts "batch mounted as " + @mountroot
@@ -31,17 +51,26 @@ namespace :yulhy2 do
     processoids()
     @@client.close
 	@@client2.close
+	@@client3.close
+	@@client4.close
+	@@client5.close
+	@@client6.close
     puts Time.now
   end
 
   def processoids()
 	@cnt += 1
 	puts @cnt
-    result = @@client.execute("select top 1 hpid,oid,cid,pid,contentModel,_oid,zindex from dbo.hydra_publish where dateHydraStart is null and dateReady is not null and _oid=0 order by dateReady")
+    #result = @@client.execute("select top 1 hpid,oid,cid,pid,contentModel,_oid,zindex from dbo.hydra_publish where dateHydraStart is null and dateReady is not null and _oid=0 order by dateReady")
+	result = @@client.execute("select top 1 a.hpid,a.oid,a.cid,a.pid,b.contentModel,a._oid from dbo.hydra_publish a, dbo.hydra_content_model b where a.dateHydraStart is null and a.dateReady is not null and a._oid=0 and a.hcmid is not null and a.hcmid=b.hcmid order by a.dateReady")
     result.fields.to_s
 	if result.affected_rows == 0
       @@client.close
 	  @@client2.close
+	  @@client3.close
+	  @@client4.close
+	  @@client5.close
+	  @@client6.close
       abort("finished, no more baghydra rows to process")
     else 
       result.each(:first=>true) do |i|
@@ -51,9 +80,13 @@ namespace :yulhy2 do
           processerror(i,msg)
         end		  
       end
-	  if @cnt > 600
+	  if @cnt > 250
 	    @@client.close
 	    @@client2.close
+		@@client3.close
+		@@client4.close
+		@@client5.close
+		@@client6.close
 	    puts Time.now
 	    abort("prevent infinite loop")
 	  end	  
@@ -80,6 +113,7 @@ namespace :yulhy2 do
 	  processmsg(i,errormsg)
 	  return
 	end
+	obj.label = ("oid: #{i["oid"]}")
 	begin
 	datastreams = @@client.execute(%Q/select hcmds.dsid as dsid,hcmds.ingestMethod as ingestMethod, hcmds.required as required from dbo.hydra_content_model hcm, dbo.hydra_content_model_ds hcmds where hcm.contentModel = '#{contentModel}' and hcm.hcmid = hcmds.hcmid/) 
 	datastreams.each do |datastream|
@@ -151,10 +185,12 @@ namespace :yulhy2 do
 	end  
 	collection_pid_uri = "info:fedora/#{collection_pid}"
 	obj.add_relationship(:is_member_of,collection_pid_uri)
+	if contentModel == "complexParent"
 	  result = @@client.execute(%Q/select max(zindex) as total from dbo.hydra_publish where _oid = #{i["oid"]}/)
 	  result.each do |i|
 	    obj.ztotal =  i["total"]
 	  end
+	end  
 	  obj.save
 	rescue Exception => msg
 	  unless result.nil? 
@@ -164,7 +200,7 @@ namespace :yulhy2 do
 	  return
     end
 	puts "PID #{obj.pid} sucessfully created for #{i["oid"]}"	
-	update = @@client.execute(%Q/update dbo.hydra_publish set hydraID='#{obj.pid}',dateHydraEnd=GETDATE() where hpid=#{i["hpid"]}/)
+	update = @@client5.execute(%Q/update dbo.hydra_publish set hydraID='#{obj.pid}',dateHydraEnd=GETDATE() where hpid=#{i["hpid"]}/)
 	update.do
 	process_children(i,obj.pid)
   end
@@ -176,20 +212,21 @@ namespace :yulhy2 do
     puts "error for oid: #{i["oid"]} errormsg: #{dberror}"
 	puts "ERROR:" + errormsg.backtrace.to_s
 	puts "STACK:" + errormsg.backtrace.to_s
-	ehid = @@client.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{dberror}")/)
+	ehid = @@client4.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{dberror}")/)
 	ehid.insert
   end
   #ERJ error routine for message driven errors (no exceptions) 
   def processmsg(i,errormsg)
     puts "error for oid: #{i["oid"]} errormsg: #{errormsg}"
-	ehid = @@client.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{errormsg}")/)
+	ehid = @@client4.execute(%Q/insert into dbo.hydra_publish_error (hpid,date,oid,error) values (#{i["hpid"]},GETDATE(),#{i["oid"]},"#{errormsg}")/)
 	ehid.insert
   end
   
   def process_children(i,ppid)
     puts "process_children for #{ppid}"
 	#ERJ note using client2 for children iteration
-    result = @@client2.execute("select hpid,oid,cid,pid,contentModel,_oid,zindex from dbo.hydra_publish where dateHydraStart is null and _oid=#{i["oid"]} order by date")
+    #result = @@client2.execute("select hpid,oid,cid,pid,contentModel,_oid,zindex from dbo.hydra_publish where dateHydraStart is null and _oid=#{i["oid"]} order by date")
+	result = @@client3.execute("select a.hpid,a.oid,a.cid,a.pid,b.contentModel,a._oid,a.zindex from dbo.hydra_publish a,dbo.hydra_content_model b where a.dateHydraStart is null and a._oid=#{i["oid"]} and a.hcmid=b.hcmid order by a.date")
     result.each { |j|
       begin 	
 	    update = @@client.execute(%Q/update dbo.hydra_publish set dateHydraStart=GETDATE() where hpid=#{j["hpid"]}/)
@@ -223,19 +260,20 @@ namespace :yulhy2 do
 	obj = nil
 	contentModel = i["contentModel"]
 	if contentModel == "complexChild"
-	  obj = ComplexChild.new #this won't happen
+	  obj = ComplexChild.new #this won't happen ,WHY not?
 	else
       erromsg =  "Error, contentModel #{contentModel} not handled"
 	  processmsg(i,errormsg)
 	  return
 	end
+	obj.label = ("oid: #{i["oid"]}")
 	begin
 	datastreams = @@client.execute(%Q/select hcmds.dsid as dsid,hcmds.ingestMethod as ingestMethod, hcmds.required as required from dbo.hydra_content_model hcm, dbo.hydra_content_model_ds hcmds where hcm.contentModel = '#{contentModel}' and hcm.hcmid = hcmds.hcmid/) 
 	datastreams.each do |datastream|
 	  dsid = datastream["dsid"].strip
 	  ingestMethod = datastream["ingestMethod"].strip
 	  required = datastream["required"].strip
-	  ds = @@client2.execute(%Q/select type,pathHTTP,pathUNC,md5,controlGroup,mimeType,dsid from dbo.hydra_publish_path where hpid=#{i["hpid"]} and dsid='#{dsid}'/)
+	  ds = @@client6.execute(%Q/select type,pathHTTP,pathUNC,md5,controlGroup,mimeType,dsid from dbo.hydra_publish_path where hpid=#{i["hpid"]} and dsid='#{dsid}'/)
 	  if required == true
 	    if ds.affected_rows == 0
 		  runningErrorStr.concat(" missing required datastream #{dsid}")
@@ -310,7 +348,7 @@ namespace :yulhy2 do
 	puts "PID #{obj.pid} sucessfully created for #{i["oid"]}"	
 	update = @@client.execute(%Q/update dbo.hydra_publish set hydraID='#{obj.pid}',dateHydraEnd=GETDATE() where hpid=#{i["hpid"]}/)
 	update.do
-	process_children(i,obj.pid)
+	#process_children(i,obj.pid)#ERJ process a child's child here
   end
   
   def get_coll_pid(cid,pid) 

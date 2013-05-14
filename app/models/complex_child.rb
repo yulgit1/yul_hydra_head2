@@ -11,5 +11,6 @@ class ComplexChild < ActiveFedora::Base
   delegate :projid, :to=>"propertyMetadata", :unique=>true
   delegate :cid, :to=>"propertyMetadata", :unique=>true
   delegate :zindex, :to=>"propertyMetadata", :unique=>true
-  delegate :parentoid, :to=>"propertyMetadata", :unique=>true 
+  delegate :parentoid, :to=>"propertyMetadata", :unique=>true
+  delegate :ztotal, :to=>"propertyMetadata", :unique=>true 
 end
