@@ -71,6 +71,7 @@ namespace :yulhy2 do
 	  @@client4.close
 	  @@client5.close
 	  @@client6.close
+      puts Time.now
       abort("finished, no more baghydra rows to process")
     else 
       result.each(:first=>true) do |i|
@@ -80,7 +81,7 @@ namespace :yulhy2 do
           processerror(i,msg)
         end		  
       end
-	  if @cnt > 250
+	  if @cnt > 1000
 	    @@client.close
 	    @@client2.close
 		@@client3.close
@@ -121,7 +122,7 @@ namespace :yulhy2 do
 	  ingestMethod = datastream["ingestMethod"].strip
 	  required = datastream["required"].strip
 	  ds = @@client2.execute(%Q/select type,pathHTTP,pathUNC,md5,controlGroup,mimeType,dsid from dbo.hydra_publish_path where hpid=#{i["hpid"]} and dsid='#{dsid}'/)
-	  if required == true
+	  if required == 'y'
 	    if ds.affected_rows == 0
 		  runningErrorStr.concat(" missing required datastream #{dsid}")
 		  next
@@ -274,7 +275,7 @@ namespace :yulhy2 do
 	  ingestMethod = datastream["ingestMethod"].strip
 	  required = datastream["required"].strip
 	  ds = @@client6.execute(%Q/select type,pathHTTP,pathUNC,md5,controlGroup,mimeType,dsid from dbo.hydra_publish_path where hpid=#{i["hpid"]} and dsid='#{dsid}'/)
-	  if required == true
+	  if required == 'y'
 	    if ds.affected_rows == 0
 		  runningErrorStr.concat(" missing required datastream #{dsid}")
 		  next
