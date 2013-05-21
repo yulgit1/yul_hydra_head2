@@ -10,33 +10,45 @@ namespace :yulhy2 do
     puts "Running ladybird ingest"
     puts Time.now
 	puts "requirement: root of share must be 'ladybird'"
-    #client = TinyTds::Client.new(:username => 'pamojaReader',:password => 'plQ(*345',:host => 'blues.library.yale.edu',:database => 'pamoja')
-    @@client = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
+
+	lbconf = YAML.load_file ('config/ladybird.yml')
+	lbuser = lbconf.fetch("username").strip
+	lbpw = lbconf.fetch("password").strip
+	lbhost = lbconf.fetch("host").strip
+	lbdb = lbconf.fetch("database").strip
+	puts "using db:"+lbdb
+	@@client = TinyTds::Client.new(:username => lbuser,:password => lbpw,:host => lbhost,:database => lbdb)
+	@@client2 = TinyTds::Client.new(:username => lbuser,:password => lbpw,:host => lbhost,:database => lbdb)
+	@@client3 = TinyTds::Client.new(:username => lbuser,:password => lbpw,:host => lbhost,:database => lbdb)
+	@@client4 = TinyTds::Client.new(:username => lbuser,:password => lbpw,:host => lbhost,:database => lbdb)
+	@@client5 = TinyTds::Client.new(:username => lbuser,:password => lbpw,:host => lbhost,:database => lbdb)
+	@@client6 = TinyTds::Client.new(:username => lbuser,:password => lbpw,:host => lbhost,:database => lbdb)
+
     puts "client1 connection to db OK? #{@@client.active?}"
     if @@client.active? == false
       abort("TASK ABORTED: client1 could not connect to db")
     end
-	@@client2 = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
+
     puts "client2 connection to db OK? #{@@client2.active?}"
     if @@client2.active? == false
       abort("TASK ABORTED: client2 could not connect to db")
     end
-	@@client3 = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
+
     puts "client3 connection to db OK? #{@@client3.active?}"
     if @@client3.active? == false
       abort("TASK ABORTED: client3 could not connect to db")
     end
-	@@client4 = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
+
     puts "client4 connection to db OK? #{@@client4.active?}"
     if @@client4.active? == false
       abort("TASK ABORTED: client4 could not connect to db")
     end
-	@@client5 = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
+
     puts "client5 connection to db OK? #{@@client5.active?}"
     if @@client5.active? == false
       abort("TASK ABORTED: client5 could not connect to db")
     end
-	@@client6 = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
+	
     puts "client6 connection to db OK? #{@@client6.active?}"
     if @@client6.active? == false
       abort("TASK ABORTED: client6 could not connect to db")

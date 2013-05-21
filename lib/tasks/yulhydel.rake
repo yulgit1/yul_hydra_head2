@@ -7,8 +7,14 @@ require '/home/ermadmix/hy_projs/yul_hydra_head2/config/environment.rb'
 namespace :yulhy do
   desc "refresh hydra_publish and hydra_publish_error tables for testing"
   task :hydra_publish_refresh do
-    #client = TinyTds::Client.new(:username => 'pamojaReader',:password => 'plQ(*345',:host => 'blues.library.yale.edu',:database => 'pamoja')
-    @@client = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
+	lbconf = YAML.load_file ('config/ladybird.yml')
+	lbuser = lbconf.fetch("username").strip
+	lbpw = lbconf.fetch("password").strip
+	lbhost = lbconf.fetch("host").strip
+	lbdb = lbconf.fetch("database").strip
+	puts "using db:"+lbdb
+	@@client = TinyTds::Client.new(:username => lbuser,:password => lbpw,:host => lbhost,:database => lbdb)
+    
     puts "connection to db OK? #{@@client.active?}"
     if @@client.active? == false
       abort("TASK ABORTED: could not connect to db")

@@ -3,7 +3,14 @@ require '/home/ermadmix/hy_projs/yul_hydra_head2/config/environment.rb'
 namespace :yulhy do
   desc "add all collections from pamoja projects table"
   task :add_all_collections do
-	@@client = TinyTds::Client.new(:username => 'pamojaWriter',:password => 'QPl478(^%',:host => 'blues.library.yale.edu',:database => 'pamoja')
+    lbconf = YAML.load_file ('config/ladybird.yml')
+	lbuser = lbconf.fetch("username").strip
+	lbpw = lbconf.fetch("password").strip
+	lbhost = lbconf.fetch("host").strip
+	lbdb = lbconf.fetch("database").strip
+	puts "using db:"+lbdb
+	@@client = TinyTds::Client.new(:username => lbuser,:password => lbpw,:host => lbhost,:database => lbdb)
+	
     puts "client connection to db OK? #{@@client.active?}"
     if @@client.active? == false
       abort("TASK ABORTED: client1 could not connect to db")
